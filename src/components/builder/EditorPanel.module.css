@@ -1,0 +1,79 @@
+/* EditorPanel.module.css */
+
+.panel {
+  width: var(--editor-width);
+  background: var(--bg-panel);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 1rem;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.icon {
+  font-size: 1.5rem;
+}
+
+.title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.subtitle {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 1rem;
+}
+
+/* Section divider between field groups */
+.sectionDivider {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  padding-top: 6px;
+  padding-bottom: 2px;
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+}
+
+/* Empty state */
+.empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.5rem;
+  text-align: center;
+  gap: 12px;
+}
+
+.emptyIcon {
+  font-size: 2rem;
+  color: var(--text-muted);
+}
+
+.emptyText {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+}

@@ -1,0 +1,80 @@
+/* SectionWrapper.module.css */
+
+.wrapper {
+  position: relative;
+  cursor: pointer;
+  outline: 2px solid transparent;
+  outline-offset: -2px;
+  transition: outline-color 0.15s;
+}
+
+.wrapper:hover {
+  outline-color: rgba(108, 99, 255, 0.4);
+}
+
+.wrapper:hover .controls {
+  opacity: 1;
+}
+
+.selected {
+  outline-color: #6c63ff !important;
+}
+
+.selected .controls {
+  opacity: 1;
+}
+
+/* Floating controls bar — appears at top of section */
+.controls {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  background: #6c63ff;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.wrapper:hover .controls,
+.selected .controls {
+  pointer-events: all;
+}
+
+.typeLabel {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.actions {
+  display: flex;
+  gap: 4px;
+}
+
+.actionBtn {
+  padding: 2px 8px;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.actionBtn:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.deleteBtn:hover {
+  background: rgba(239, 68, 68, 0.7);
+}

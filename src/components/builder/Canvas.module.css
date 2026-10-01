@@ -1,0 +1,47 @@
+/* Canvas.module.css */
+
+.canvas {
+  flex: 1;
+  overflow-y: auto;
+  background: #e8e8ee;
+  padding: 2rem;
+}
+
+.page {
+  max-width: 1100px;
+  margin: 0 auto;
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 40px rgba(0, 0, 0, 0.18);
+  min-height: 400px;
+}
+
+/* Empty state */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: calc(100vh - var(--topbar-height) - 4rem);
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.emptyIcon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.emptyTitle {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.emptyText {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}

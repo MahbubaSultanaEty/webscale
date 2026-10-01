@@ -1,0 +1,76 @@
+/* TopBar.module.css */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--topbar-height);
+  padding: 0 1.25rem;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.logo {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: -0.02em;
+}
+
+.separator {
+  color: var(--border-light);
+}
+
+.pageLabel {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.sectionCount {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.loadBtn {
+  padding: 7px 16px;
+  border-radius: 7px;
+  border: 1px solid var(--border-light);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 500;
+  background: transparent;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.loadBtn:hover {
+  border-color: var(--text-secondary);
+  color: var(--text-primary);
+}
+
+.saveBtn {
+  padding: 7px 18px;
+  border-radius: 7px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.saveBtn:hover {
+  background: var(--accent-hover);
+}

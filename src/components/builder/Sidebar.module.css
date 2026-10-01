@@ -1,0 +1,66 @@
+/* Sidebar.module.css */
+
+.sidebar {
+  width: var(--sidebar-width);
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.header {
+  padding: 1rem 1rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.hint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  padding: 0.5rem;
+  gap: 4px;
+}
+
+.sectionBtn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  text-align: left;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.sectionBtn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: var(--border);
+}
+
+.icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.label {
+  font-weight: 500;
+}
