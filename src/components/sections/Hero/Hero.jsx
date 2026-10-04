@@ -4,7 +4,7 @@
 'use client';
 
 import ElementRenderer from '@/components/renderer/ElementRenderer';
-
+import SortableElementList from '@/components/renderer/SortableElementList';
 export function Hero({ section, ...fallbackProps }) {
   const styles = section?.styles || {};
   const backgroundColor = styles.backgroundColor || fallbackProps.backgroundColor || '#a23fa1';
@@ -28,11 +28,10 @@ export function Hero({ section, ...fallbackProps }) {
       <div style={{ maxWidth: '800px', margin: '0 auto', padding: '0 2rem' }}>
         {elements && elements.length > 0 ? (
           elements.map((element) => (
-            <ElementRenderer
-              key={element.id}
-              element={element}
-              sectionId={section.id}
-            />
+            <SortableElementList
+  elements={elements}
+  sectionId={section.id}
+/>
           ))
         ) : (
           <>

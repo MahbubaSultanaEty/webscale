@@ -1,3 +1,4 @@
+
 // context/BuilderContext.js
 // Global state for the WebScale visual builder.
 //
@@ -17,17 +18,33 @@
 // - updateElement(sectionId, elementId, updates)
 // - deleteElement(sectionId, elementId)
 // - duplicateElement(sectionId, elementId)
+// - reorderElements(sectionId, oldIndex, newIndex)
 // - openContextMenu(sectionId, elementId, x, y)
 // - closeContextMenu()
 // - moveSection(id, direction)
 
 'use client';
 
-import { createContext, useContext, useState, useEffect, useRef } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useRef,
+} from 'react';
+
 import { generateId } from '@/lib/generateId';
 import { sectionRegistry } from '@/lib/sectionRegistry';
-import { getPages, getPage, createPage, updatePage } from '@/lib/api';
-import { savePageToLocalStorage, loadPageFromLocalStorage } from '@/lib/storage';
+import {
+  getPages,
+  getPage,
+  createPage,
+  updatePage,
+} from '@/lib/api';
+import {
+  savePageToLocalStorage,
+  loadPageFromLocalStorage,
+} from '@/lib/storage';
 
 const BuilderContext = createContext(null);
 
@@ -51,11 +68,13 @@ export function BuilderProvider({ children }) {
   // --------------------------------------------------
   // INITIAL LOAD FROM MONGODB
   // --------------------------------------------------
+
   useEffect(() => {
     let isMounted = true;
 
     async function initializePage() {
       setIsLoading(true);
+
       try {
         const pages = await getPages();
 
@@ -63,6 +82,7 @@ export function BuilderProvider({ children }) {
 
         if (pages && pages.length > 0) {
           const currentPage = pages[0];
+
           setPageId(currentPage._id);
           setPageName(currentPage.name || 'My Page');
           setSections(currentPage.sections || []);
@@ -72,23 +92,32 @@ export function BuilderProvider({ children }) {
             name: 'My Page',
             sections: [],
           });
+
           if (!isMounted) return;
+
           setPageId(newPage._id);
           setPageName(newPage.name || 'My Page');
           setSections(newPage.sections || []);
         }
       } catch (err) {
         console.error('Failed to load page from API:', err);
+
         // Fallback to local storage if API is not available
         const local = loadPageFromLocalStorage();
+
         if (local && local.sections) {
           setSections(local.sections);
-          if (local.name) setPageName(local.name);
+
+          if (local.name) {
+            setPageName(local.name);
+          }
         }
       } finally {
         if (isMounted) {
           setIsLoading(false);
-          // Wait 300ms before enabling autosave so initial state setter doesn't trigger save
+
+          // Wait 300ms before enabling autosave
+          // so initial state setter doesn't trigger save
           setTimeout(() => {
             isLoadedRef.current = true;
           }, 300);
@@ -106,6 +135,7 @@ export function BuilderProvider({ children }) {
   // --------------------------------------------------
   // AUTO-SAVE TO MONGODB (DEBOUNCED)
   // --------------------------------------------------
+
   useEffect(() => {
     // Only auto-save once initial load is completed and pageId is known
     if (!isLoadedRef.current || !pageId) {
@@ -120,7 +150,12 @@ export function BuilderProvider({ children }) {
           name: pageName,
           sections,
         });
-        savePageToLocalStorage({ name: pageName, sections });
+
+        savePageToLocalStorage({
+          name: pageName,
+          sections,
+        });
+
         setSaveStatus('saved');
       } catch (err) {
         console.error('Auto-save failed:', err);
@@ -134,16 +169,25 @@ export function BuilderProvider({ children }) {
   // --------------------------------------------------
   // MANUAL SAVE / LOAD HELPERS
   // --------------------------------------------------
+
   async function saveCurrentPage() {
     if (!pageId) return;
+
     setSaveStatus('saving');
+
     try {
       const updated = await updatePage(pageId, {
         name: pageName,
         sections,
       });
-      savePageToLocalStorage({ name: pageName, sections });
+
+      savePageToLocalStorage({
+        name: pageName,
+        sections,
+      });
+
       setSaveStatus('saved');
+
       return updated;
     } catch (err) {
       console.error('Manual save failed:', err);
@@ -154,12 +198,15 @@ export function BuilderProvider({ children }) {
 
   async function loadCurrentPage() {
     setIsLoading(true);
+
     try {
       let pageData = null;
+
       if (pageId) {
         pageData = await getPage(pageId);
       } else {
         const pages = await getPages();
+
         if (pages.length > 0) {
           pageData = pages[0];
           setPageId(pageData._id);
@@ -170,14 +217,17 @@ export function BuilderProvider({ children }) {
         setSections(pageData.sections || []);
         setPageName(pageData.name || 'My Page');
         setSaveStatus('saved');
+
         return pageData;
       }
+
       return null;
     } catch (err) {
       console.error('Manual load failed:', err);
       throw err;
     } finally {
       setIsLoading(false);
+
       setTimeout(() => {
         isLoadedRef.current = true;
       }, 200);
@@ -402,6 +452,51 @@ export function BuilderProvider({ children }) {
   }
 
   // --------------------------------------------------
+  // REORDER ELEMENTS
+  // --------------------------------------------------
+  // Moves an element from oldIndex to newIndex
+  // inside the same section.
+  //
+  // This is called after a drag-and-drop operation
+  // finishes in @dnd-kit.
+
+  function reorderElements(sectionId, oldIndex, newIndex) {
+    // Nothing to do if the element stays in the same position.
+    if (oldIndex === newIndex) return;
+
+    setSections((prev) =>
+      prev.map((section) => {
+        if (section.id !== sectionId) {
+          return section;
+        }
+
+        const elements = [...(section.elements || [])];
+
+        // Make sure both indexes are valid.
+        if (
+          oldIndex < 0 ||
+          oldIndex >= elements.length ||
+          newIndex < 0 ||
+          newIndex >= elements.length
+        ) {
+          return section;
+        }
+
+        // Remove the dragged element from its old position.
+        const [movedElement] = elements.splice(oldIndex, 1);
+
+        // Insert it into the new position.
+        elements.splice(newIndex, 0, movedElement);
+
+        return {
+          ...section,
+          elements,
+        };
+      })
+    );
+  }
+
+  // --------------------------------------------------
   // OPEN CONTEXT MENU
   // --------------------------------------------------
 
@@ -551,6 +646,7 @@ export function BuilderProvider({ children }) {
         updateElement,
         deleteElement,
         duplicateElement,
+        reorderElements,
 
         // Context menu actions
         openContextMenu,

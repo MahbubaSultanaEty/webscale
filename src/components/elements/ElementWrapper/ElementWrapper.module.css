@@ -1,15 +1,33 @@
 /* components/elements/ElementWrapper/ElementWrapper.module.css */
 
+/*
+ * Wrapper around every editable canvas element.
+ *
+ * Handles:
+ * - Hover state
+ * - Element selection
+ * - Element type badge
+ * - Drag handle
+ * - Resize handles
+ */
+
 .wrapper {
   position: relative;
   cursor: pointer;
   border-radius: 4px;
+
   outline: 1.5px dashed transparent;
   outline-offset: 3px;
-  transition: outline-color 0.15s ease, background-color 0.15s ease;
+
+  transition:
+    outline-color 0.15s ease,
+    background-color 0.15s ease;
 }
 
-/* Hover effect */
+/* --------------------------------------------------
+   Hover effect
+-------------------------------------------------- */
+
 .wrapper:hover {
   outline-color: rgba(108, 99, 255, 0.5);
   background-color: rgba(108, 99, 255, 0.03);
@@ -19,7 +37,10 @@
   opacity: 1;
 }
 
-/* Selected effect */
+/* --------------------------------------------------
+   Selected effect
+-------------------------------------------------- */
+
 .selected {
   outline: 2px solid #6c63ff !important;
   outline-offset: 3px;
@@ -32,23 +53,158 @@
   color: #ffffff;
 }
 
-/* Element Type Badge */
+/* --------------------------------------------------
+   Element Type Badge
+-------------------------------------------------- */
+
 .badge {
   position: absolute;
   top: -12px;
   left: 6px;
+
   font-size: 0.65rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+
   background: #2a2b36;
   color: #e2e8f0;
+
   padding: 1px 7px;
   border-radius: 4px;
+
   opacity: 0;
   pointer-events: none;
+
   transition: opacity 0.15s ease;
+
   z-index: 20;
   white-space: nowrap;
+
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+/* --------------------------------------------------
+   DRAG HANDLE
+-------------------------------------------------- */
+
+/*
+ * Visible only when the element is selected.
+ * This is the area the user can grab to move the element.
+ */
+
+.dragHandle {
+  position: absolute;
+
+  top: 50%;
+  left: -28px;
+
+  width: 22px;
+  height: 22px;
+
+  transform: translateY(-50%);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid #d1d5db;
+  border-radius: 5px;
+
+  background: #ffffff;
+  color: #6b7280;
+
+  cursor: grab;
+
+  opacity: 0;
+  pointer-events: none;
+
+  z-index: 50;
+
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+
+  transition:
+    opacity 0.15s ease,
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+/* Show drag handle only for selected element */
+
+.selected .dragHandle {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* While dragging */
+
+.dragHandle:active {
+  cursor: grabbing;
+}
+
+/* Hover */
+
+.dragHandle:hover {
+  background: #f3f4f6;
+  color: #4f46e5;
+}
+
+/* --------------------------------------------------
+   RESIZE HANDLES
+-------------------------------------------------- */
+
+/*
+ * Resize handles stay hidden until the element
+ * is selected.
+ */
+
+.resizeHandle {
+  position: absolute;
+
+  width: 8px;
+  height: 8px;
+
+  background: #ffffff;
+  border: 2px solid #6c63ff;
+  border-radius: 50%;
+
+  opacity: 0;
+  pointer-events: none;
+
+  z-index: 51;
+}
+
+/* Show resize handles on selected element */
+
+.selected .resizeHandle {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* --------------------------------------------------
+   Resize positions
+-------------------------------------------------- */
+
+.resizeTopLeft {
+  top: -6px;
+  left: -6px;
+  cursor: nwse-resize;
+}
+
+.resizeTopRight {
+  top: -6px;
+  right: -6px;
+  cursor: nesw-resize;
+}
+
+.resizeBottomLeft {
+  bottom: -6px;
+  left: -6px;
+  cursor: nesw-resize;
+}
+
+.resizeBottomRight {
+  bottom: -6px;
+  right: -6px;
+  cursor: nwse-resize;
 }

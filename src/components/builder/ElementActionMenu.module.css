@@ -1,0 +1,52 @@
+.menu {
+  position: fixed;
+  z-index: 99999;
+  width: 176px;
+  padding: 4px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow:
+    0 10px 25px rgba(0, 0, 0, 0.12),
+    0 4px 10px rgba(0, 0, 0, 0.06);
+}
+
+.button {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 12px;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+
+.button:hover {
+  background: #f3f4f6;
+}
+
+.deleteButton {
+  color: #dc2626;
+}
+
+.deleteButton:hover {
+  background: #fef2f2;
+}
+
+.divider {
+  height: 1px;
+  margin: 4px 0;
+  background: #e5e7eb;
+}
+
+.icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
