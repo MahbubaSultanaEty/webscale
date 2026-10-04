@@ -4,7 +4,7 @@
 'use client';
 
 import { useState } from 'react';
-import ElementRenderer from '@/components/renderer/ElementRenderer';
+import SortableElementList from '@/components/renderer/SortableElementList';
 
 export function FAQ({ section, ...fallbackProps }) {
   const [openIndex, setOpenIndex] = useState(null);
@@ -22,9 +22,6 @@ export function FAQ({ section, ...fallbackProps }) {
   }
 
   if (elements && elements.length > 0) {
-    const headingElements = elements.filter((el) => el.type === 'heading');
-    const cardElements = elements.filter((el) => el.type === 'card');
-
     return (
       <section
         style={{
@@ -35,23 +32,11 @@ export function FAQ({ section, ...fallbackProps }) {
         }}
       >
         <div style={{ maxWidth: '720px', margin: '0 auto', padding: '0 2rem' }}>
-          {headingElements.map((element) => (
-            <div key={element.id} style={{ marginBottom: '2.5rem' }}>
-              <ElementRenderer
-                element={element}
-                sectionId={section.id}
-              />
-            </div>
-          ))}
-
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {cardElements.map((element) => (
-              <ElementRenderer
-                key={element.id}
-                element={element}
-                sectionId={section.id}
-              />
-            ))}
+            <SortableElementList
+              elements={elements}
+              sectionId={section.id}
+            />
           </div>
         </div>
       </section>

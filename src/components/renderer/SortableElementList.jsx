@@ -21,6 +21,13 @@ import ElementRenderer from './ElementRenderer';
 export default function SortableElementList({
   elements = [],
   sectionId,
+
+  // Section-এর পুরো element list। যখন elements filter করা subset হয়
+  // (যেমন শুধু card), তখন index পুরো list থেকে বের করতে এটা লাগে।
+  allElements,
+
+  // Vertical list-এর জন্য default, grid-এর জন্য rectSortingStrategy দিন।
+  strategy = verticalListSortingStrategy,
 }) {
   const { reorderElements } = useBuilder();
 
@@ -36,8 +43,10 @@ export default function SortableElementList({
   function handleDragEnd({ active, over }) {
     if (!over || active.id === over.id) return;
 
-    const oldIndex = elements.findIndex((el) => el.id === active.id);
-    const newIndex = elements.findIndex((el) => el.id === over.id);
+    const source = allElements || elements;
+
+    const oldIndex = source.findIndex((el) => el.id === active.id);
+    const newIndex = source.findIndex((el) => el.id === over.id);
 
     if (oldIndex === -1 || newIndex === -1) return;
 
@@ -54,7 +63,7 @@ export default function SortableElementList({
     >
       <SortableContext
         items={elements.map((el) => el.id)}
-        strategy={verticalListSortingStrategy}
+        strategy={strategy}
       >
         {elements.map((element) => (
           <ElementRenderer

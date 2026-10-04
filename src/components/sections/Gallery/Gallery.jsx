@@ -3,7 +3,8 @@
 
 'use client';
 
-import ElementRenderer from '@/components/renderer/ElementRenderer';
+import { rectSortingStrategy } from '@dnd-kit/sortable';
+import SortableElementList from '@/components/renderer/SortableElementList';
 
 export function Gallery({ section, ...fallbackProps }) {
   const styles = section?.styles || {};
@@ -29,14 +30,13 @@ export function Gallery({ section, ...fallbackProps }) {
         }}
       >
         <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 2rem' }}>
-          {headingElements.map((element) => (
-            <div key={element.id} style={{ marginBottom: '2rem' }}>
-              <ElementRenderer
-                element={element}
-                sectionId={section.id}
-              />
-            </div>
-          ))}
+          <div style={{ marginBottom: '2rem' }}>
+            <SortableElementList
+              elements={headingElements}
+              allElements={elements}
+              sectionId={section.id}
+            />
+          </div>
 
           <div
             style={{
@@ -45,13 +45,12 @@ export function Gallery({ section, ...fallbackProps }) {
               gap: '1rem',
             }}
           >
-            {imageElements.map((element) => (
-              <ElementRenderer
-                key={element.id}
-                element={element}
-                sectionId={section.id}
-              />
-            ))}
+            <SortableElementList
+              elements={imageElements}
+              allElements={elements}
+              sectionId={section.id}
+              strategy={rectSortingStrategy}
+            />
           </div>
         </div>
       </section>

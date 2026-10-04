@@ -1,4 +1,3 @@
-
 // context/BuilderContext.js
 // Global state for the WebScale visual builder.
 //
@@ -48,6 +47,38 @@ import {
 
 const BuilderContext = createContext(null);
 
+// --------------------------------------------------
+// ENSURE UNIQUE IDS
+// --------------------------------------------------
+// Repairs saved data where two sections/elements share
+// the same id. Runs every time data is loaded.
+
+function ensureUniqueIds(sections = []) {
+  const seen = new Set();
+
+  return sections.map((section) => {
+    let sectionId = section.id;
+
+    if (!sectionId || seen.has(sectionId)) {
+      sectionId = generateId('sec');
+    }
+    seen.add(sectionId);
+
+    const elements = (section.elements || []).map((el) => {
+      let elId = el.id;
+
+      if (!elId || seen.has(elId)) {
+        elId = generateId('el');
+      }
+      seen.add(elId);
+
+      return { ...el, id: elId };
+    });
+
+    return { ...section, id: sectionId, elements };
+  });
+}
+
 export function BuilderProvider({ children }) {
   const [sections, setSections] = useState([]);
   const [selectedSectionId, setSelectedSectionId] = useState(null);
@@ -85,7 +116,7 @@ export function BuilderProvider({ children }) {
 
           setPageId(currentPage._id);
           setPageName(currentPage.name || 'My Page');
-          setSections(currentPage.sections || []);
+          setSections(ensureUniqueIds(currentPage.sections || []));
         } else {
           // If no page exists in MongoDB, create default page
           const newPage = await createPage({
@@ -97,7 +128,7 @@ export function BuilderProvider({ children }) {
 
           setPageId(newPage._id);
           setPageName(newPage.name || 'My Page');
-          setSections(newPage.sections || []);
+          setSections(ensureUniqueIds(newPage.sections || []));
         }
       } catch (err) {
         console.error('Failed to load page from API:', err);
@@ -106,7 +137,7 @@ export function BuilderProvider({ children }) {
         const local = loadPageFromLocalStorage();
 
         if (local && local.sections) {
-          setSections(local.sections);
+          setSections(ensureUniqueIds(local.sections));
 
           if (local.name) {
             setPageName(local.name);
@@ -214,7 +245,7 @@ export function BuilderProvider({ children }) {
       }
 
       if (pageData) {
-        setSections(pageData.sections || []);
+        setSections(ensureUniqueIds(pageData.sections || []));
         setPageName(pageData.name || 'My Page');
         setSaveStatus('saved');
 
@@ -243,12 +274,18 @@ export function BuilderProvider({ children }) {
 
     if (!config) return;
 
-    const initialElements =
+    const rawElements =
       typeof config.createDefaultElements === 'function'
         ? config.createDefaultElements()
         : config.defaultElements
           ? JSON.parse(JSON.stringify(config.defaultElements))
           : [];
+
+    // Every element always gets a fresh unique id
+    const initialElements = rawElements.map((el) => ({
+      ...el,
+      id: generateId('el'),
+    }));
 
     const newSection = {
       id: generateId('sec'),
@@ -392,9 +429,12 @@ export function BuilderProvider({ children }) {
   // --------------------------------------------------
   // DUPLICATE ELEMENT
   // --------------------------------------------------
+  // The new id is created ONCE, outside the state updater,
+  // so React StrictMode double-running the updater can't
+  // produce mismatched ids.
 
   function duplicateElement(sectionId, elementId) {
-    let duplicatedElementId = null;
+    const newId = generateId('el');
 
     setSections((prev) =>
       prev.map((section) => {
@@ -402,66 +442,41 @@ export function BuilderProvider({ children }) {
 
         const elements = section.elements || [];
 
-        const elementIndex = elements.findIndex(
+        const index = elements.findIndex(
           (element) => element.id === elementId
         );
 
-        if (elementIndex === -1) {
-          return section;
-        }
+        if (index === -1) return section;
 
-        const originalElement = elements[elementIndex];
+        const original = elements[index];
 
-        const duplicatedElement = {
-          ...originalElement,
-
-          id: generateId('el'),
-
-          content: {
-            ...(originalElement.content || {}),
-          },
-
-          styles: {
-            ...(originalElement.styles || {}),
-          },
+        const copy = {
+          ...original,
+          id: newId,
+          content: { ...(original.content || {}) },
+          styles: { ...(original.styles || {}) },
         };
 
-        duplicatedElementId = duplicatedElement.id;
-
-        const updatedElements = [...elements];
-
-        updatedElements.splice(
-          elementIndex + 1,
-          0,
-          duplicatedElement
-        );
+        const updated = [...elements];
+        updated.splice(index + 1, 0, copy);
 
         return {
           ...section,
-          elements: updatedElements,
+          elements: updated,
         };
       })
     );
 
-    if (duplicatedElementId) {
-      setSelectedSectionId(sectionId);
-      setSelectedElementId(duplicatedElementId);
-    }
-
+    setSelectedSectionId(sectionId);
+    setSelectedElementId(newId);
     setContextMenu(null);
   }
 
   // --------------------------------------------------
   // REORDER ELEMENTS
   // --------------------------------------------------
-  // Moves an element from oldIndex to newIndex
-  // inside the same section.
-  //
-  // This is called after a drag-and-drop operation
-  // finishes in @dnd-kit.
 
   function reorderElements(sectionId, oldIndex, newIndex) {
-    // Nothing to do if the element stays in the same position.
     if (oldIndex === newIndex) return;
 
     setSections((prev) =>
@@ -472,7 +487,6 @@ export function BuilderProvider({ children }) {
 
         const elements = [...(section.elements || [])];
 
-        // Make sure both indexes are valid.
         if (
           oldIndex < 0 ||
           oldIndex >= elements.length ||
@@ -482,10 +496,7 @@ export function BuilderProvider({ children }) {
           return section;
         }
 
-        // Remove the dragged element from its old position.
         const [movedElement] = elements.splice(oldIndex, 1);
-
-        // Insert it into the new position.
         elements.splice(newIndex, 0, movedElement);
 
         return {
@@ -500,12 +511,7 @@ export function BuilderProvider({ children }) {
   // OPEN CONTEXT MENU
   // --------------------------------------------------
 
-  function openContextMenu(
-    sectionId,
-    elementId,
-    x,
-    y
-  ) {
+  function openContextMenu(sectionId, elementId, x, y) {
     setSelectedSectionId(sectionId);
     setSelectedElementId(elementId);
 
@@ -568,14 +574,9 @@ export function BuilderProvider({ children }) {
       if (index === -1) return prev;
 
       const newIndex =
-        direction === 'up'
-          ? index - 1
-          : index + 1;
+        direction === 'up' ? index - 1 : index + 1;
 
-      if (
-        newIndex < 0 ||
-        newIndex >= prev.length
-      ) {
+      if (newIndex < 0 || newIndex >= prev.length) {
         return prev;
       }
 
@@ -591,26 +592,18 @@ export function BuilderProvider({ children }) {
   }
 
   // --------------------------------------------------
-  // SELECTED SECTION
+  // SELECTED SECTION / ELEMENT
   // --------------------------------------------------
 
   const selectedSection =
     sections.find(
-      (section) =>
-        section.id === selectedSectionId
+      (section) => section.id === selectedSectionId
     ) || null;
-
-  // --------------------------------------------------
-  // SELECTED ELEMENT
-  // --------------------------------------------------
 
   const selectedElement =
     selectedSection && selectedElementId
-      ? (
-          selectedSection.elements || []
-        ).find(
-          (element) =>
-            element.id === selectedElementId
+      ? (selectedSection.elements || []).find(
+          (element) => element.id === selectedElementId
         ) || null
       : null;
 

@@ -1,11 +1,19 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { Move, Maximize2 } from 'lucide-react';
+import { Move } from 'lucide-react';
 import { useBuilder } from '@/context/BuilderContext';
 import styles from './ElementWrapper.module.css';
 
 const MIN_WIDTH = 60;
+const MIN_HEIGHT = 24;
+
+const CORNERS = [
+  { key: 'TopLeft', x: -1, y: -1 },
+  { key: 'TopRight', x: 1, y: -1 },
+  { key: 'BottomLeft', x: -1, y: 1 },
+  { key: 'BottomRight', x: 1, y: 1 },
+];
 
 export default function ElementWrapper({
   element,
@@ -21,17 +29,18 @@ export default function ElementWrapper({
   } = useBuilder();
 
   const wrapperRef = useRef(null);
-  const resizeStartRef = useRef(null);
+  const resizeRef = useRef(null);
 
-  // Resize চলার সময় live width (শুধু local state, context-এ না)
-  const [liveWidth, setLiveWidth] = useState(null);
+  // Resize চলার সময় live size (শুধু local state)
+  const [liveSize, setLiveSize] = useState(null);
 
   const isSelected = selectedElementId === element?.id;
 
-  // Saved width: element.styles.width (যেমন "320px")
   const savedWidth = element?.styles?.width;
-  const appliedWidth =
-    liveWidth !== null ? `${liveWidth}px` : savedWidth;
+  const savedHeight = element?.styles?.height;
+
+  const appliedWidth = liveSize ? `${liveSize.width}px` : savedWidth;
+  const appliedHeight = liveSize ? `${liveSize.height}px` : savedHeight;
 
   // --------------------------------------------------
   // SELECT
@@ -55,19 +64,12 @@ export default function ElementWrapper({
     selectElement(sectionId, element.id);
 
     const rect = e.currentTarget.getBoundingClientRect();
-    openContextMenu(
-      sectionId,
-      element.id,
-      rect.right + 8,
-      rect.top
-    );
+    openContextMenu(sectionId, element.id, rect.right + 8, rect.top);
   }
 
   // --------------------------------------------------
   // DRAG HANDLE
   // --------------------------------------------------
-  // listeners spread করার পর নিজের onPointerDown দিলে
-  // dnd-kit-এরটা overwrite হয়ে যায়, তাই ভেতর থেকে call করছি।
 
   function handleDragPointerDown(e) {
     if (!element?.id) return;
@@ -76,10 +78,30 @@ export default function ElementWrapper({
   }
 
   // --------------------------------------------------
-  // RESIZE (width)
+  // RESIZE (4 corners, width + height)
   // --------------------------------------------------
+  // Element center-aligned (margin: auto), তাই width দুই পাশে
+  // সমানভাবে বাড়ে। cursor আর handle মেলাতে width delta ×2 করা হয়েছে।
 
-  function handleResizePointerDown(e) {
+  function calcSize(e) {
+    const s = resizeRef.current;
+
+    const dx = e.clientX - s.startX;
+    const dy = e.clientY - s.startY;
+
+    return {
+      width: Math.max(
+        MIN_WIDTH,
+        Math.round(s.startWidth + dx * s.corner.x * 2)
+      ),
+      height: Math.max(
+        MIN_HEIGHT,
+        Math.round(s.startHeight + dy * s.corner.y)
+      ),
+    };
+  }
+
+  function handleResizePointerDown(e, corner) {
     e.preventDefault();
     e.stopPropagation(); // dnd-kit-এর সাথে conflict আটকায়
 
@@ -89,43 +111,40 @@ export default function ElementWrapper({
 
     e.currentTarget.setPointerCapture(e.pointerId);
 
-    resizeStartRef.current = {
+    const rect = wrapperRef.current.getBoundingClientRect();
+
+    resizeRef.current = {
+      corner,
       startX: e.clientX,
-      startWidth: wrapperRef.current.offsetWidth,
+      startY: e.clientY,
+      startWidth: rect.width,
+      startHeight: rect.height,
     };
 
-    setLiveWidth(wrapperRef.current.offsetWidth);
+    setLiveSize({ width: rect.width, height: rect.height });
   }
 
   function handleResizePointerMove(e) {
-    const start = resizeStartRef.current;
-    if (!start) return;
-
-    const next = Math.max(
-      MIN_WIDTH,
-      Math.round(start.startWidth + (e.clientX - start.startX))
-    );
-
-    setLiveWidth(next);
+    if (!resizeRef.current) return;
+    setLiveSize(calcSize(e));
   }
 
   function handleResizePointerUp(e) {
-    const start = resizeStartRef.current;
-    if (!start) return;
+    if (!resizeRef.current) return;
 
     e.currentTarget.releasePointerCapture?.(e.pointerId);
 
-    const finalWidth = Math.max(
-      MIN_WIDTH,
-      Math.round(start.startWidth + (e.clientX - start.startX))
-    );
+    const finalSize = calcSize(e);
 
-    resizeStartRef.current = null;
-    setLiveWidth(null);
+    resizeRef.current = null;
+    setLiveSize(null);
 
-    // শেষে একবারই context-এ save হবে (autosave spam হবে না)
+    // শেষে একবারই save হবে, autosave spam হবে না
     updateElement(sectionId, element.id, {
-      styles: { width: `${finalWidth}px` },
+      styles: {
+        width: `${finalSize.width}px`,
+        height: `${finalSize.height}px`,
+      },
     });
   }
 
@@ -133,29 +152,29 @@ export default function ElementWrapper({
   // RENDER
   // --------------------------------------------------
 
+  const wrapperStyle = {};
+
+  if (appliedWidth) {
+    wrapperStyle.width = appliedWidth;
+    wrapperStyle.maxWidth = '100%';
+    wrapperStyle.marginLeft = 'auto';
+    wrapperStyle.marginRight = 'auto';
+  }
+
+  if (appliedHeight) {
+    wrapperStyle.minHeight = appliedHeight;
+  }
+
   return (
     <div
       ref={wrapperRef}
-      className={`${styles.wrapper} ${
-        isSelected ? styles.selected : ''
-      }`}
-      style={
-        appliedWidth
-          ? {
-              width: appliedWidth,
-              maxWidth: '100%',
-              marginLeft: 'auto',
-              marginRight: 'auto',
-            }
-          : undefined
-      }
+      className={`${styles.wrapper} ${isSelected ? styles.selected : ''}`}
+      style={wrapperStyle}
       onClick={handleClick}
       onContextMenu={handleContextMenu}
       id={`element-${element?.id}`}
     >
-      <span className={styles.badge}>
-        {element?.type || 'element'}
-      </span>
+      <span className={styles.badge}>{element?.type || 'element'}</span>
 
       {isSelected && (
         <button
@@ -174,20 +193,20 @@ export default function ElementWrapper({
 
       {children}
 
-      {isSelected && (
-        <button
-          type="button"
-          className={styles.resizeHandle}
-          title="Resize element"
-          aria-label="Resize element"
-          onPointerDown={handleResizePointerDown}
-          onPointerMove={handleResizePointerMove}
-          onPointerUp={handleResizePointerUp}
-          onPointerCancel={handleResizePointerUp}
-        >
-          <Maximize2 size={12} strokeWidth={2.5} />
-        </button>
-      )}
+      {isSelected &&
+        CORNERS.map((corner) => (
+          <span
+            key={corner.key}
+            role="presentation"
+            className={`${styles.resizeHandle} ${
+              styles[`resize${corner.key}`]
+            }`}
+            onPointerDown={(e) => handleResizePointerDown(e, corner)}
+            onPointerMove={handleResizePointerMove}
+            onPointerUp={handleResizePointerUp}
+            onPointerCancel={handleResizePointerUp}
+          />
+        ))}
     </div>
   );
 }

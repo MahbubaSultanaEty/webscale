@@ -3,7 +3,8 @@
 
 'use client';
 
-import ElementRenderer from '@/components/renderer/ElementRenderer';
+import { rectSortingStrategy } from '@dnd-kit/sortable';
+import SortableElementList from '@/components/renderer/SortableElementList';
 
 export function Testimonials({ section, ...fallbackProps }) {
   const styles = section?.styles || {};
@@ -30,13 +31,11 @@ export function Testimonials({ section, ...fallbackProps }) {
         }}
       >
         <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 2rem' }}>
-          {headerElements.map((element) => (
-            <ElementRenderer
-              key={element.id}
-              element={element}
-              sectionId={section.id}
-            />
-          ))}
+          <SortableElementList
+            elements={headerElements}
+            allElements={elements}
+            sectionId={section.id}
+          />
 
           <div
             style={{
@@ -46,13 +45,12 @@ export function Testimonials({ section, ...fallbackProps }) {
               marginTop: '2rem',
             }}
           >
-            {cardElements.map((element) => (
-              <ElementRenderer
-                key={element.id}
-                element={element}
-                sectionId={section.id}
-              />
-            ))}
+            <SortableElementList
+              elements={cardElements}
+              allElements={elements}
+              sectionId={section.id}
+              strategy={rectSortingStrategy}
+            />
           </div>
         </div>
       </section>

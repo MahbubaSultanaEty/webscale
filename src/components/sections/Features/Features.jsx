@@ -3,7 +3,8 @@
 
 'use client';
 
-import ElementRenderer from '@/components/renderer/ElementRenderer';
+import { rectSortingStrategy } from '@dnd-kit/sortable';
+import SortableElementList from '@/components/renderer/SortableElementList';
 
 export function Features({ section, ...fallbackProps }) {
   const styles = section?.styles || {};
@@ -33,13 +34,11 @@ export function Features({ section, ...fallbackProps }) {
         <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 2rem' }}>
           {/* Header elements (Title, subtitle) */}
           <div style={{ maxWidth: '640px', margin: '0 auto 3rem auto', textAlign: 'center' }}>
-            {headerElements.map((element) => (
-              <ElementRenderer
-                key={element.id}
-                element={element}
-                sectionId={section.id}
-              />
-            ))}
+            <SortableElementList
+              elements={headerElements}
+              allElements={elements}
+              sectionId={section.id}
+            />
           </div>
 
           {/* Cards Grid */}
@@ -50,13 +49,12 @@ export function Features({ section, ...fallbackProps }) {
               gap: '1.5rem',
             }}
           >
-            {cardElements.map((element) => (
-              <ElementRenderer
-                key={element.id}
-                element={element}
-                sectionId={section.id}
-              />
-            ))}
+            <SortableElementList
+              elements={cardElements}
+              allElements={elements}
+              sectionId={section.id}
+              strategy={rectSortingStrategy}
+            />
           </div>
         </div>
       </section>
