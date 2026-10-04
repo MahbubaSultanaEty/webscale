@@ -1,102 +1,573 @@
 // context/BuilderContext.js
-// This is the global state for the entire builder.
-// ANY component can read or update the page by calling useBuilder().
+// Global state for the WebScale visual builder.
 //
-// What it stores:
-//  - sections: the list of sections on the canvas (the "page schema")
-//  - selectedId: which section is currently selected (to show in editor panel)
+// Stores:
+// - sections
+// - selectedSectionId
+// - selectedElementId
+// - contextMenu
 //
-// What it provides:
-//  - addSection(type)         → add a new section to the canvas
-//  - removeSection(id)        → remove a section
-//  - updateSection(id, props) → update one or more props of a section
-//  - selectSection(id)        → set which section is selected
-//  - moveSection(id, dir)     → move a section up or down
+// Provides:
+// - addSection(type)
+// - removeSection(id)
+// - updateSection(id, updates)
+// - selectSection(id)
+// - selectElement(sectionId, elementId)
+// - clearSelection()
+// - updateElement(sectionId, elementId, updates)
+// - deleteElement(sectionId, elementId)
+// - duplicateElement(sectionId, elementId)
+// - openContextMenu(sectionId, elementId, x, y)
+// - closeContextMenu()
+// - moveSection(id, direction)
 
 'use client';
 
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { generateId } from '@/lib/generateId';
 import { sectionRegistry } from '@/lib/sectionRegistry';
+import { getPages, getPage, createPage, updatePage } from '@/lib/api';
+import { savePageToLocalStorage, loadPageFromLocalStorage } from '@/lib/storage';
 
-// 1. Create the context
 const BuilderContext = createContext(null);
 
-// 2. The Provider component — wrap the builder UI with this
 export function BuilderProvider({ children }) {
-  // The page is just an array of section objects
   const [sections, setSections] = useState([]);
-  // Which section is selected right now (by its id)
-  const [selectedId, setSelectedId] = useState(null);
+  const [selectedSectionId, setSelectedSectionId] = useState(null);
+  const [selectedElementId, setSelectedElementId] = useState(null);
 
-  // Add a new section to the bottom of the canvas
+  // Context menu state
+  const [contextMenu, setContextMenu] = useState(null);
+
+  // Persistence state
+  const [pageId, setPageId] = useState(null);
+  const [pageName, setPageName] = useState('My Page');
+  const [isLoading, setIsLoading] = useState(true);
+  const [saveStatus, setSaveStatus] = useState('idle'); // 'idle' | 'saving' | 'saved' | 'error'
+
+  // Ref to prevent initial empty state from overwriting database
+  const isLoadedRef = useRef(false);
+
+  // --------------------------------------------------
+  // INITIAL LOAD FROM MONGODB
+  // --------------------------------------------------
+  useEffect(() => {
+    let isMounted = true;
+
+    async function initializePage() {
+      setIsLoading(true);
+      try {
+        const pages = await getPages();
+
+        if (!isMounted) return;
+
+        if (pages && pages.length > 0) {
+          const currentPage = pages[0];
+          setPageId(currentPage._id);
+          setPageName(currentPage.name || 'My Page');
+          setSections(currentPage.sections || []);
+        } else {
+          // If no page exists in MongoDB, create default page
+          const newPage = await createPage({
+            name: 'My Page',
+            sections: [],
+          });
+          if (!isMounted) return;
+          setPageId(newPage._id);
+          setPageName(newPage.name || 'My Page');
+          setSections(newPage.sections || []);
+        }
+      } catch (err) {
+        console.error('Failed to load page from API:', err);
+        // Fallback to local storage if API is not available
+        const local = loadPageFromLocalStorage();
+        if (local && local.sections) {
+          setSections(local.sections);
+          if (local.name) setPageName(local.name);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+          // Wait 300ms before enabling autosave so initial state setter doesn't trigger save
+          setTimeout(() => {
+            isLoadedRef.current = true;
+          }, 300);
+        }
+      }
+    }
+
+    initializePage();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // --------------------------------------------------
+  // AUTO-SAVE TO MONGODB (DEBOUNCED)
+  // --------------------------------------------------
+  useEffect(() => {
+    // Only auto-save once initial load is completed and pageId is known
+    if (!isLoadedRef.current || !pageId) {
+      return;
+    }
+
+    setSaveStatus('saving');
+
+    const debounceTimer = setTimeout(async () => {
+      try {
+        await updatePage(pageId, {
+          name: pageName,
+          sections,
+        });
+        savePageToLocalStorage({ name: pageName, sections });
+        setSaveStatus('saved');
+      } catch (err) {
+        console.error('Auto-save failed:', err);
+        setSaveStatus('error');
+      }
+    }, 600);
+
+    return () => clearTimeout(debounceTimer);
+  }, [sections, pageName, pageId]);
+
+  // --------------------------------------------------
+  // MANUAL SAVE / LOAD HELPERS
+  // --------------------------------------------------
+  async function saveCurrentPage() {
+    if (!pageId) return;
+    setSaveStatus('saving');
+    try {
+      const updated = await updatePage(pageId, {
+        name: pageName,
+        sections,
+      });
+      savePageToLocalStorage({ name: pageName, sections });
+      setSaveStatus('saved');
+      return updated;
+    } catch (err) {
+      console.error('Manual save failed:', err);
+      setSaveStatus('error');
+      throw err;
+    }
+  }
+
+  async function loadCurrentPage() {
+    setIsLoading(true);
+    try {
+      let pageData = null;
+      if (pageId) {
+        pageData = await getPage(pageId);
+      } else {
+        const pages = await getPages();
+        if (pages.length > 0) {
+          pageData = pages[0];
+          setPageId(pageData._id);
+        }
+      }
+
+      if (pageData) {
+        setSections(pageData.sections || []);
+        setPageName(pageData.name || 'My Page');
+        setSaveStatus('saved');
+        return pageData;
+      }
+      return null;
+    } catch (err) {
+      console.error('Manual load failed:', err);
+      throw err;
+    } finally {
+      setIsLoading(false);
+      setTimeout(() => {
+        isLoadedRef.current = true;
+      }, 200);
+    }
+  }
+
+  // --------------------------------------------------
+  // ADD SECTION
+  // --------------------------------------------------
+
   function addSection(type) {
     const config = sectionRegistry[type];
+
     if (!config) return;
 
+    const initialElements =
+      typeof config.createDefaultElements === 'function'
+        ? config.createDefaultElements()
+        : config.defaultElements
+          ? JSON.parse(JSON.stringify(config.defaultElements))
+          : [];
+
     const newSection = {
-      id: generateId(),
+      id: generateId('sec'),
       type,
-      // Start with the default props defined in the section's config
-      props: { ...config.defaultProps },
+
+      styles: {
+        ...(config.defaultStyles || {}),
+      },
+
+      props: {
+        ...(config.defaultProps || {}),
+      },
+
+      elements: initialElements,
     };
 
     setSections((prev) => [...prev, newSection]);
-    setSelectedId(newSection.id); // auto-select the new section
+
+    setSelectedSectionId(newSection.id);
+    setSelectedElementId(null);
+    setContextMenu(null);
   }
 
-  // Remove a section by id
+  // --------------------------------------------------
+  // REMOVE SECTION
+  // --------------------------------------------------
+
   function removeSection(id) {
-    setSections((prev) => prev.filter((s) => s.id !== id));
-    setSelectedId(null);
+    setSections((prev) =>
+      prev.filter((section) => section.id !== id)
+    );
+
+    if (selectedSectionId === id) {
+      setSelectedSectionId(null);
+      setSelectedElementId(null);
+      setContextMenu(null);
+    }
   }
 
-  // Update specific props of a section
-  // Example: updateSection('abc', { heading: 'New text', color: '#fff' })
-  function updateSection(id, newProps) {
+  // --------------------------------------------------
+  // UPDATE SECTION
+  // --------------------------------------------------
+
+  function updateSection(id, updates) {
     setSections((prev) =>
-      prev.map((s) =>
-        s.id === id ? { ...s, props: { ...s.props, ...newProps } } : s
-      )
+      prev.map((section) => {
+        if (section.id !== id) return section;
+
+        return {
+          ...section,
+          ...updates,
+
+          styles: updates.styles
+            ? {
+                ...(section.styles || {}),
+                ...updates.styles,
+              }
+            : section.styles || {},
+
+          props: updates.props
+            ? {
+                ...(section.props || {}),
+                ...updates.props,
+              }
+            : {
+                ...(section.props || {}),
+                ...updates,
+              },
+        };
+      })
     );
   }
 
-  // Select a section (shows its fields in the EditorPanel)
-  function selectSection(id) {
-    setSelectedId(id);
+  // --------------------------------------------------
+  // UPDATE ELEMENT
+  // --------------------------------------------------
+
+  function updateElement(sectionId, elementId, updates) {
+    setSections((prev) =>
+      prev.map((section) => {
+        if (section.id !== sectionId) return section;
+
+        const updatedElements = (section.elements || []).map(
+          (element) => {
+            if (element.id !== elementId) return element;
+
+            return {
+              ...element,
+              ...updates,
+
+              content: updates.content
+                ? {
+                    ...(element.content || {}),
+                    ...updates.content,
+                  }
+                : element.content || {},
+
+              styles: updates.styles
+                ? {
+                    ...(element.styles || {}),
+                    ...updates.styles,
+                  }
+                : element.styles || {},
+            };
+          }
+        );
+
+        return {
+          ...section,
+          elements: updatedElements,
+        };
+      })
+    );
   }
 
-  // Move a section up or down in the list
+  // --------------------------------------------------
+  // DELETE ELEMENT
+  // --------------------------------------------------
+
+  function deleteElement(sectionId, elementId) {
+    setSections((prev) =>
+      prev.map((section) => {
+        if (section.id !== sectionId) return section;
+
+        return {
+          ...section,
+          elements: (section.elements || []).filter(
+            (element) => element.id !== elementId
+          ),
+        };
+      })
+    );
+
+    if (selectedElementId === elementId) {
+      setSelectedElementId(null);
+    }
+
+    setContextMenu(null);
+  }
+
+  // --------------------------------------------------
+  // DUPLICATE ELEMENT
+  // --------------------------------------------------
+
+  function duplicateElement(sectionId, elementId) {
+    let duplicatedElementId = null;
+
+    setSections((prev) =>
+      prev.map((section) => {
+        if (section.id !== sectionId) return section;
+
+        const elements = section.elements || [];
+
+        const elementIndex = elements.findIndex(
+          (element) => element.id === elementId
+        );
+
+        if (elementIndex === -1) {
+          return section;
+        }
+
+        const originalElement = elements[elementIndex];
+
+        const duplicatedElement = {
+          ...originalElement,
+
+          id: generateId('el'),
+
+          content: {
+            ...(originalElement.content || {}),
+          },
+
+          styles: {
+            ...(originalElement.styles || {}),
+          },
+        };
+
+        duplicatedElementId = duplicatedElement.id;
+
+        const updatedElements = [...elements];
+
+        updatedElements.splice(
+          elementIndex + 1,
+          0,
+          duplicatedElement
+        );
+
+        return {
+          ...section,
+          elements: updatedElements,
+        };
+      })
+    );
+
+    if (duplicatedElementId) {
+      setSelectedSectionId(sectionId);
+      setSelectedElementId(duplicatedElementId);
+    }
+
+    setContextMenu(null);
+  }
+
+  // --------------------------------------------------
+  // OPEN CONTEXT MENU
+  // --------------------------------------------------
+
+  function openContextMenu(
+    sectionId,
+    elementId,
+    x,
+    y
+  ) {
+    setSelectedSectionId(sectionId);
+    setSelectedElementId(elementId);
+
+    setContextMenu({
+      x,
+      y,
+      sectionId,
+      elementId,
+    });
+  }
+
+  // --------------------------------------------------
+  // CLOSE CONTEXT MENU
+  // --------------------------------------------------
+
+  function closeContextMenu() {
+    setContextMenu(null);
+  }
+
+  // --------------------------------------------------
+  // SELECT SECTION
+  // --------------------------------------------------
+
+  function selectSection(id) {
+    setSelectedSectionId(id);
+    setSelectedElementId(null);
+    setContextMenu(null);
+  }
+
+  // --------------------------------------------------
+  // SELECT ELEMENT
+  // --------------------------------------------------
+
+  function selectElement(sectionId, elementId) {
+    setSelectedSectionId(sectionId);
+    setSelectedElementId(elementId);
+    setContextMenu(null);
+  }
+
+  // --------------------------------------------------
+  // CLEAR SELECTION
+  // --------------------------------------------------
+
+  function clearSelection() {
+    setSelectedSectionId(null);
+    setSelectedElementId(null);
+    setContextMenu(null);
+  }
+
+  // --------------------------------------------------
+  // MOVE SECTION
+  // --------------------------------------------------
+
   function moveSection(id, direction) {
     setSections((prev) => {
-      const index = prev.findIndex((s) => s.id === id);
+      const index = prev.findIndex(
+        (section) => section.id === id
+      );
+
       if (index === -1) return prev;
 
-      const newIndex = direction === 'up' ? index - 1 : index + 1;
-      if (newIndex < 0 || newIndex >= prev.length) return prev;
+      const newIndex =
+        direction === 'up'
+          ? index - 1
+          : index + 1;
+
+      if (
+        newIndex < 0 ||
+        newIndex >= prev.length
+      ) {
+        return prev;
+      }
 
       const updated = [...prev];
-      // Swap the two sections
-      [updated[index], updated[newIndex]] = [updated[newIndex], updated[index]];
+
+      [updated[index], updated[newIndex]] = [
+        updated[newIndex],
+        updated[index],
+      ];
+
       return updated;
     });
   }
 
-  // The selected section object (used by EditorPanel)
-  const selectedSection = sections.find((s) => s.id === selectedId) || null;
+  // --------------------------------------------------
+  // SELECTED SECTION
+  // --------------------------------------------------
+
+  const selectedSection =
+    sections.find(
+      (section) =>
+        section.id === selectedSectionId
+    ) || null;
+
+  // --------------------------------------------------
+  // SELECTED ELEMENT
+  // --------------------------------------------------
+
+  const selectedElement =
+    selectedSection && selectedElementId
+      ? (
+          selectedSection.elements || []
+        ).find(
+          (element) =>
+            element.id === selectedElementId
+        ) || null
+      : null;
+
+  // --------------------------------------------------
+  // PROVIDER
+  // --------------------------------------------------
 
   return (
     <BuilderContext.Provider
       value={{
+        // State
         sections,
-        selectedId,
+
+        selectedId: selectedSectionId,
+        selectedSectionId,
+        selectedElementId,
+
         selectedSection,
+        selectedElement,
+
+        // Context menu
+        contextMenu,
+
+        // Section actions
         addSection,
         removeSection,
         updateSection,
         selectSection,
         moveSection,
-        setSections, // exposed for save/load
+
+        // Element actions
+        selectElement,
+        updateElement,
+        deleteElement,
+        duplicateElement,
+
+        // Context menu actions
+        openContextMenu,
+        closeContextMenu,
+
+        // Persistence
+        pageId,
+        pageName,
+        setPageName,
+        isLoading,
+        saveStatus,
+        saveCurrentPage,
+        loadCurrentPage,
+
+        // General
+        clearSelection,
+        setSections,
       }}
     >
       {children}
@@ -104,12 +575,18 @@ export function BuilderProvider({ children }) {
   );
 }
 
-// 3. Custom hook — makes it easy to use the context in any component
-// Usage: const { sections, addSection } = useBuilder();
+// --------------------------------------------------
+// HOOK
+// --------------------------------------------------
+
 export function useBuilder() {
   const context = useContext(BuilderContext);
+
   if (!context) {
-    throw new Error('useBuilder must be used inside <BuilderProvider>');
+    throw new Error(
+      'useBuilder must be used inside <BuilderProvider>'
+    );
   }
+
   return context;
 }

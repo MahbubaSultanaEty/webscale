@@ -1,7 +1,3 @@
-// components/builder/Sidebar.jsx
-// The left panel. Shows a list of section types the user can add.
-// Clicking a section type calls addSection() from the builder context.
-
 'use client';
 
 import { useBuilder } from '@/context/BuilderContext';
@@ -21,17 +17,24 @@ export default function Sidebar() {
       </div>
 
       <div className={styles.list}>
-        {sectionTypes.map(([type, config]) => (
-          <button
-            key={type}
-            className={styles.sectionBtn}
-            onClick={() => addSection(type)}
-            id={`add-${type.toLowerCase()}-btn`}
-          >
-            <span className={styles.icon}>{config.icon}</span>
-            <span className={styles.label}>{config.label}</span>
-          </button>
-        ))}
+        {sectionTypes.map(([type, config]) => {
+          const Icon = config.icon;
+
+          return (
+            <button
+              key={type}
+              className={styles.sectionBtn}
+              onClick={() => addSection(type)}
+              id={`add-${type.toLowerCase()}-btn`}
+            >
+              <span className={styles.icon}>
+                <Icon />
+              </span>
+
+              <span className={styles.label}>{config.label}</span>
+            </button>
+          );
+        })}
       </div>
     </aside>
   );

@@ -1,14 +1,14 @@
 // lib/sectionRegistry.js
-// This is the "master list" of all available section types.
-// When you want to add a new section to the builder, you register it here.
+// Master registry of section templates.
 //
-// Each entry maps a type name (e.g. "Hero") to:
-//  - label:        displayed in the sidebar
-//  - icon:         emoji shown in the section picker
-//  - defaultProps: the starting values when a new section is added
-//  - fields:       what controls appear in the EditorPanel for this section
-//
-// Field types supported: 'text', 'color', 'select', 'slider', 'image', 'textarea'
+// In this new architecture, sections are compositions of reusable elements!
+// Each section template defines:
+//  - label: display name in sidebar
+//  - icon: emoji shown in picker
+//  - component: React section component
+//  - defaultStyles: section container styles (background, padding, etc.)
+//  - createDefaultElements(): creates fresh, editable elements with unique IDs
+//  - fields: controls shown in EditorPanel when the section itself is selected
 
 import { Hero } from '@/components/sections/Hero/Hero';
 import { FAQ } from '@/components/sections/FAQ/FAQ';
@@ -16,48 +16,78 @@ import { Gallery } from '@/components/sections/Gallery/Gallery';
 import { Features } from '@/components/sections/Features/Features';
 import { Testimonials } from '@/components/sections/Testimonials/Testimonials';
 import { CTABanner } from '@/components/sections/CTABanner/CTABanner';
+import { generateId } from '@/lib/generateId';
+import { MessageSquareDotIcon, Sparkles, ScanText, ImageIcon, Megaphone, ShieldQuestionMark } from 'lucide-react';
 
 export const sectionRegistry = {
   Hero: {
     label: 'Hero Section',
-    icon: '🚀',
+    icon: ScanText,
     component: Hero,
-    defaultProps: {
-      heading: 'Build Something Amazing',
-      subheading: 'A fast and flexible visual builder for modern websites.',
-      buttonText: 'Get Started',
-      buttonLink: '#',
+    defaultStyles: {
       backgroundColor: '#1a1a2e',
       textColor: '#ffffff',
-      headingSize: '52px',
-      headingWeight: '700',
-      subheadingSize: '18px',
-      textAlign: 'center',
+      paddingTop: 80,
+      paddingBottom: 80,
+    },
+    defaultProps: {
+      backgroundColor: '#1a1a2e',
+      textColor: '#ffffff',
       paddingTop: '80',
       paddingBottom: '80',
-      buttonBg: '#6c63ff',
-      buttonColor: '#ffffff',
-      buttonRadius: '8',
     },
+    createDefaultElements: () => [
+      {
+        id: generateId('el'),
+        type: 'heading',
+        content: {
+          text: 'Build Something Amazing',
+        },
+        styles: {
+          fontSize: 52,
+          fontWeight: '700',
+          color: '#ffffff',
+          textAlign: 'center',
+          marginBottom: 16,
+        },
+      },
+      {
+        id: generateId('el'),
+        type: 'paragraph',
+        content: {
+          text: 'A fast, flexible visual builder for modern websites. Click any element to edit it.',
+        },
+        styles: {
+          fontSize: 18,
+          fontWeight: '400',
+          color: '#cbd5e1',
+          textAlign: 'center',
+          marginBottom: 32,
+        },
+      },
+      {
+        id: generateId('el'),
+        type: 'button',
+        content: {
+          text: 'Get Started',
+          link: '#',
+        },
+        styles: {
+          backgroundColor: '#6c63ff',
+          color: '#ffffff',
+          borderRadius: 8,
+          paddingX: 32,
+          paddingY: 14,
+          fontSize: 16,
+          fontWeight: '600',
+        },
+      },
+    ],
     fields: [
-      { section: 'Content' },
-      { key: 'heading', label: 'Heading', type: 'text' },
-      { key: 'subheading', label: 'Subheading', type: 'textarea' },
-      { key: 'buttonText', label: 'Button Text', type: 'text' },
-      { key: 'buttonLink', label: 'Button Link', type: 'text' },
-      { section: 'Typography' },
-      { key: 'headingSize', label: 'Heading Size (px)', type: 'slider', min: 24, max: 96 },
-      { key: 'headingWeight', label: 'Heading Weight', type: 'select', options: ['400', '500', '600', '700', '800'] },
-      { key: 'subheadingSize', label: 'Subheading Size (px)', type: 'slider', min: 14, max: 36 },
-      { key: 'textAlign', label: 'Text Align', type: 'select', options: ['left', 'center', 'right'] },
-      { section: 'Colors' },
+      { section: 'Section Background' },
       { key: 'backgroundColor', label: 'Background Color', type: 'color' },
-      { key: 'textColor', label: 'Text Color', type: 'color' },
-      { section: 'Button' },
-      { key: 'buttonBg', label: 'Button Background', type: 'color' },
-      { key: 'buttonColor', label: 'Button Text Color', type: 'color' },
-      { key: 'buttonRadius', label: 'Border Radius (px)', type: 'slider', min: 0, max: 50 },
-      { section: 'Spacing' },
+      { key: 'textColor', label: 'Default Text Color', type: 'color' },
+      { section: 'Section Spacing' },
       { key: 'paddingTop', label: 'Padding Top (px)', type: 'slider', min: 0, max: 200 },
       { key: 'paddingBottom', label: 'Padding Bottom (px)', type: 'slider', min: 0, max: 200 },
     ],
@@ -65,34 +95,107 @@ export const sectionRegistry = {
 
   Features: {
     label: 'Features',
-    icon: '✨',
+    icon: Sparkles,
     component: Features,
-    defaultProps: {
-      heading: 'Why Choose Us',
-      subheading: 'Everything you need to build and ship faster.',
+    defaultStyles: {
       backgroundColor: '#ffffff',
       textColor: '#111111',
-      textAlign: 'center',
+      paddingTop: 80,
+      paddingBottom: 80,
+      columns: '3',
+    },
+    defaultProps: {
+      backgroundColor: '#ffffff',
+      textColor: '#111111',
       paddingTop: '80',
       paddingBottom: '80',
       columns: '3',
-      items: [
-        { icon: '⚡', title: 'Fast', description: 'Optimized for speed and performance.' },
-        { icon: '🎨', title: 'Beautiful', description: 'Stunning designs out of the box.' },
-        { icon: '🔒', title: 'Secure', description: 'Enterprise-grade security built in.' },
-      ],
     },
+    createDefaultElements: () => [
+      {
+        id: generateId('el'),
+        type: 'heading',
+        content: {
+          text: 'Why Choose Us',
+        },
+        styles: {
+          fontSize: 36,
+          fontWeight: '700',
+          color: '#111111',
+          textAlign: 'center',
+          marginBottom: 12,
+        },
+      },
+      {
+        id: generateId('el'),
+        type: 'paragraph',
+        content: {
+          text: 'Everything you need to build and ship high-converting pages faster.',
+        },
+        styles: {
+          fontSize: 18,
+          fontWeight: '400',
+          color: '#6b7280',
+          textAlign: 'center',
+          marginBottom: 0,
+        },
+      },
+      {
+        id: generateId('el'),
+        type: 'card',
+        content: {
+          icon: 'Flame',
+          title: 'Lightning Fast',
+          description: 'Optimized for speed and fluid performance on every screen.',
+        },
+        styles: {
+          backgroundColor: 'rgba(0, 0, 0, 0.03)',
+          borderColor: 'rgba(0, 0, 0, 0.08)',
+          borderRadius: 12,
+          padding: 24,
+          textColor: '#111111',
+        },
+      },
+      {
+        id: generateId('el'),
+        type: 'card',
+        content: {
+          icon: 'Palette',
+          title: 'Visual Editing',
+          description: 'Click any element to instantly customize text, colors, and layout.',
+        },
+        styles: {
+          backgroundColor: 'rgba(0, 0, 0, 0.03)',
+          borderColor: 'rgba(0, 0, 0, 0.08)',
+          borderRadius: 12,
+          padding: 24,
+          textColor: '#111111',
+        },
+      },
+      {
+        id: generateId('el'),
+        type: 'card',
+        content: {
+          icon: 'Lock',
+          title: 'Production Ready',
+          description: 'Clean JavaScript architecture designed to scale with your project.',
+        },
+        styles: {
+          backgroundColor: 'rgba(0, 0, 0, 0.03)',
+          borderColor: 'rgba(0, 0, 0, 0.08)',
+          borderRadius: 12,
+          padding: 24,
+          textColor: '#111111',
+        },
+      },
+    ],
     fields: [
-      { section: 'Content' },
-      { key: 'heading', label: 'Heading', type: 'text' },
-      { key: 'subheading', label: 'Subheading', type: 'textarea' },
-      { section: 'Layout' },
+      { section: 'Section Layout' },
       { key: 'columns', label: 'Columns', type: 'select', options: ['2', '3', '4'] },
-      { key: 'textAlign', label: 'Align', type: 'select', options: ['left', 'center'] },
-      { section: 'Colors' },
+      { section: 'Section Colors' },
       { key: 'backgroundColor', label: 'Background', type: 'color' },
       { key: 'textColor', label: 'Text Color', type: 'color' },
-      { section: 'Spacing' },
+      { section: 'Section Spacing' },
       { key: 'paddingTop', label: 'Padding Top (px)', type: 'slider', min: 0, max: 200 },
       { key: 'paddingBottom', label: 'Padding Bottom (px)', type: 'slider', min: 0, max: 200 },
     ],
@@ -100,27 +203,89 @@ export const sectionRegistry = {
 
   Testimonials: {
     label: 'Testimonials',
-    icon: '💬',
+    icon: MessageSquareDotIcon,
     component: Testimonials,
+    defaultStyles: {
+      backgroundColor: '#f9f9f9',
+      textColor: '#111111',
+      paddingTop: 80,
+      paddingBottom: 80,
+    },
     defaultProps: {
-      heading: 'What People Say',
       backgroundColor: '#f9f9f9',
       textColor: '#111111',
       paddingTop: '80',
       paddingBottom: '80',
-      items: [
-        { name: 'Sarah K.', role: 'CEO, Acme Corp', text: 'Absolutely love this tool. Saved us weeks of work!' },
-        { name: 'James L.', role: 'Designer', text: 'The best visual builder I have ever used. Period.' },
-        { name: 'Maria T.', role: 'Startup Founder', text: 'Launched our landing page in an afternoon. Incredible.' },
-      ],
     },
+    createDefaultElements: () => [
+      {
+        id: generateId('el'),
+        type: 'heading',
+        content: {
+          text: 'Loved by Creators',
+        },
+        styles: {
+          fontSize: 36,
+          fontWeight: '700',
+          color: '#111111',
+          textAlign: 'center',
+          marginBottom: 16,
+        },
+      },
+      {
+        id: generateId('el'),
+        type: 'card',
+        content: {
+          icon: 'Star',
+          title: 'Sarah K. — CEO',
+          description: 'WebScale saved us weeks of design and development work. The element-level editing is phenomenal.',
+        },
+        styles: {
+          backgroundColor: '#ffffff',
+          borderColor: '#e5e7eb',
+          borderRadius: 12,
+          padding: 24,
+          textColor: '#111111',
+        },
+      },
+      {
+        id: generateId('el'),
+        type: 'card',
+        content: {
+          icon: '⭐️⭐️⭐️⭐️⭐️',
+          title: 'James L. — Lead Designer',
+          description: 'The best visual builder I have used. Being able to click every element makes all the difference.',
+        },
+        styles: {
+          backgroundColor: '#ffffff',
+          borderColor: '#e5e7eb',
+          borderRadius: 12,
+          padding: 24,
+          textColor: '#111111',
+        },
+      },
+      {
+        id: generateId('el'),
+        type: 'card',
+        content: {
+          icon: '⭐️⭐️⭐️⭐️⭐️',
+          title: 'Maria T. — Startup Founder',
+          description: 'Launched our high-converting landing page in a single afternoon. Amazing tool!',
+        },
+        styles: {
+          backgroundColor: '#ffffff',
+          borderColor: '#e5e7eb',
+          borderRadius: 12,
+          padding: 24,
+          textColor: '#111111',
+        },
+      },
+    ],
     fields: [
-      { section: 'Content' },
-      { key: 'heading', label: 'Heading', type: 'text' },
-      { section: 'Colors' },
+      { section: 'Section Colors' },
       { key: 'backgroundColor', label: 'Background', type: 'color' },
       { key: 'textColor', label: 'Text Color', type: 'color' },
-      { section: 'Spacing' },
+      { section: 'Section Spacing' },
       { key: 'paddingTop', label: 'Padding Top (px)', type: 'slider', min: 0, max: 200 },
       { key: 'paddingBottom', label: 'Padding Bottom (px)', type: 'slider', min: 0, max: 200 },
     ],
@@ -128,27 +293,89 @@ export const sectionRegistry = {
 
   FAQ: {
     label: 'FAQ',
-    icon: '❓',
+    icon: ShieldQuestionMark,
     component: FAQ,
+    defaultStyles: {
+      backgroundColor: '#ffffff',
+      textColor: '#111111',
+      paddingTop: 80,
+      paddingBottom: 80,
+    },
     defaultProps: {
-      heading: 'Frequently Asked Questions',
       backgroundColor: '#ffffff',
       textColor: '#111111',
       paddingTop: '80',
       paddingBottom: '80',
-      items: [
-        { question: 'Is this free to use?', answer: 'Yes! The basic plan is completely free.' },
-        { question: 'Do I need to know how to code?', answer: 'No coding required at all.' },
-        { question: 'Can I export my site?', answer: 'Yes, you can export clean HTML/CSS anytime.' },
-      ],
     },
+    createDefaultElements: () => [
+      {
+        id: generateId('el'),
+        type: 'heading',
+        content: {
+          text: 'Frequently Asked Questions',
+        },
+        styles: {
+          fontSize: 36,
+          fontWeight: '700',
+          color: '#111111',
+          textAlign: 'center',
+          marginBottom: 16,
+        },
+      },
+      {
+        id: generateId('el'),
+        type: 'card',
+        content: {
+          icon: 'CreditCard',
+          title: 'Is WebScale free to use?',
+          description: 'Yes! The starter plan gives you complete access to visual page building.',
+        },
+        styles: {
+          backgroundColor: 'rgba(0, 0, 0, 0.02)',
+          borderColor: 'rgba(0, 0, 0, 0.08)',
+          borderRadius: 10,
+          padding: 20,
+          textColor: '#111111',
+        },
+      },
+      {
+        id: generateId('el'),
+        type: 'card',
+        content: {
+          icon: 'Rocket',
+          title: 'Do I need to know how to code?',
+          description: 'No coding required at all. Click any element on canvas to customize it.',
+        },
+        styles: {
+          backgroundColor: 'rgba(0, 0, 0, 0.02)',
+          borderColor: 'rgba(0, 0, 0, 0.08)',
+          borderRadius: 10,
+          padding: 20,
+          textColor: '#111111',
+        },
+      },
+      {
+        id: generateId('el'),
+        type: 'card',
+        content: {
+          icon: 'Package',
+          title: 'Can I export my designs?',
+          description: 'Yes, your page schema is stored as clean JSON and can be saved or loaded anytime.',
+        },
+        styles: {
+          backgroundColor: 'rgba(0, 0, 0, 0.02)',
+          borderColor: 'rgba(0, 0, 0, 0.08)',
+          borderRadius: 10,
+          padding: 20,
+          textColor: '#111111',
+        },
+      },
+    ],
     fields: [
-      { section: 'Content' },
-      { key: 'heading', label: 'Heading', type: 'text' },
-      { section: 'Colors' },
+      { section: 'Section Colors' },
       { key: 'backgroundColor', label: 'Background', type: 'color' },
       { key: 'textColor', label: 'Text Color', type: 'color' },
-      { section: 'Spacing' },
+      { section: 'Section Spacing' },
       { key: 'paddingTop', label: 'Padding Top (px)', type: 'slider', min: 0, max: 200 },
       { key: 'paddingBottom', label: 'Padding Bottom (px)', type: 'slider', min: 0, max: 200 },
     ],
@@ -156,35 +383,123 @@ export const sectionRegistry = {
 
   Gallery: {
     label: 'Gallery',
-    icon: '🖼️',
+    icon: ImageIcon,
     component: Gallery,
+    defaultStyles: {
+      backgroundColor: '#ffffff',
+      textColor: '#111111',
+      paddingTop: 80,
+      paddingBottom: 80,
+      columns: '3',
+    },
     defaultProps: {
-      heading: 'Our Gallery',
       backgroundColor: '#ffffff',
       textColor: '#111111',
       paddingTop: '80',
       paddingBottom: '80',
       columns: '3',
-      borderRadius: '8',
-      items: [
-        { src: 'https://picsum.photos/seed/1/600/400', alt: 'Gallery image 1' },
-        { src: 'https://picsum.photos/seed/2/600/400', alt: 'Gallery image 2' },
-        { src: 'https://picsum.photos/seed/3/600/400', alt: 'Gallery image 3' },
-        { src: 'https://picsum.photos/seed/4/600/400', alt: 'Gallery image 4' },
-        { src: 'https://picsum.photos/seed/5/600/400', alt: 'Gallery image 5' },
-        { src: 'https://picsum.photos/seed/6/600/400', alt: 'Gallery image 6' },
-      ],
     },
+    createDefaultElements: () => [
+      {
+        id: generateId('el'),
+        type: 'heading',
+        content: {
+          text: 'Our Gallery',
+        },
+        styles: {
+          fontSize: 36,
+          fontWeight: '700',
+          color: '#111111',
+          textAlign: 'center',
+          marginBottom: 16,
+        },
+      },
+      {
+        id: generateId('el'),
+        type: 'image',
+        content: {
+          src: 'https://picsum.photos/seed/gallery1/600/400',
+          alt: 'Gallery image 1',
+        },
+        styles: {
+          width: '100%',
+          borderRadius: 8,
+          objectFit: 'cover',
+        },
+      },
+      {
+        id: generateId('el'),
+        type: 'image',
+        content: {
+          src: 'https://picsum.photos/seed/gallery2/600/400',
+          alt: 'Gallery image 2',
+        },
+        styles: {
+          width: '100%',
+          borderRadius: 8,
+          objectFit: 'cover',
+        },
+      },
+      {
+        id: generateId('el'),
+        type: 'image',
+        content: {
+          src: 'https://picsum.photos/seed/gallery3/600/400',
+          alt: 'Gallery image 3',
+        },
+        styles: {
+          width: '100%',
+          borderRadius: 8,
+          objectFit: 'cover',
+        },
+      },
+      {
+        id: generateId('el'),
+        type: 'image',
+        content: {
+          src: 'https://picsum.photos/seed/gallery4/600/400',
+          alt: 'Gallery image 4',
+        },
+        styles: {
+          width: '100%',
+          borderRadius: 8,
+          objectFit: 'cover',
+        },
+      },
+      {
+        id: generateId('el'),
+        type: 'image',
+        content: {
+          src: 'https://picsum.photos/seed/gallery5/600/400',
+          alt: 'Gallery image 5',
+        },
+        styles: {
+          width: '100%',
+          borderRadius: 8,
+          objectFit: 'cover',
+        },
+      },
+      {
+        id: generateId('el'),
+        type: 'image',
+        content: {
+          src: 'https://picsum.photos/seed/gallery6/600/400',
+          alt: 'Gallery image 6',
+        },
+        styles: {
+          width: '100%',
+          borderRadius: 8,
+          objectFit: 'cover',
+        },
+      },
+    ],
     fields: [
-      { section: 'Content' },
-      { key: 'heading', label: 'Heading', type: 'text' },
-      { section: 'Layout' },
+      { section: 'Section Layout' },
       { key: 'columns', label: 'Columns', type: 'select', options: ['2', '3', '4'] },
-      { key: 'borderRadius', label: 'Image Radius (px)', type: 'slider', min: 0, max: 32 },
-      { section: 'Colors' },
+      { section: 'Section Colors' },
       { key: 'backgroundColor', label: 'Background', type: 'color' },
       { key: 'textColor', label: 'Text Color', type: 'color' },
-      { section: 'Spacing' },
+      { section: 'Section Spacing' },
       { key: 'paddingTop', label: 'Padding Top (px)', type: 'slider', min: 0, max: 200 },
       { key: 'paddingBottom', label: 'Padding Bottom (px)', type: 'slider', min: 0, max: 200 },
     ],
@@ -192,34 +507,72 @@ export const sectionRegistry = {
 
   CTABanner: {
     label: 'CTA Banner',
-    icon: '📣',
+    icon: Megaphone,
     component: CTABanner,
-    defaultProps: {
-      heading: 'Ready to get started?',
-      subheading: 'Join thousands of users building with WebScale today.',
-      buttonText: 'Start for Free',
-      buttonLink: '#',
+    defaultStyles: {
       backgroundColor: '#6c63ff',
       textColor: '#ffffff',
-      buttonBg: '#ffffff',
-      buttonColor: '#6c63ff',
-      buttonRadius: '8',
+      paddingTop: 80,
+      paddingBottom: 80,
+    },
+    defaultProps: {
+      backgroundColor: '#6c63ff',
+      textColor: '#ffffff',
       paddingTop: '80',
       paddingBottom: '80',
     },
+    createDefaultElements: () => [
+      {
+        id: generateId('el'),
+        type: 'heading',
+        content: {
+          text: 'Ready to get started?',
+        },
+        styles: {
+          fontSize: 40,
+          fontWeight: '700',
+          color: '#ffffff',
+          textAlign: 'center',
+          marginBottom: 16,
+        },
+      },
+      {
+        id: generateId('el'),
+        type: 'paragraph',
+        content: {
+          text: 'Join thousands of users building with WebScale today.',
+        },
+        styles: {
+          fontSize: 18,
+          fontWeight: '400',
+          color: '#f8fafc',
+          textAlign: 'center',
+          marginBottom: 32,
+        },
+      },
+      {
+        id: generateId('el'),
+        type: 'button',
+        content: {
+          text: 'Start for Free',
+          link: '#',
+        },
+        styles: {
+          backgroundColor: '#ffffff',
+          color: '#6c63ff',
+          borderRadius: 8,
+          paddingX: 36,
+          paddingY: 14,
+          fontSize: 16,
+          fontWeight: '700',
+        },
+      },
+    ],
     fields: [
-      { section: 'Content' },
-      { key: 'heading', label: 'Heading', type: 'text' },
-      { key: 'subheading', label: 'Subheading', type: 'textarea' },
-      { key: 'buttonText', label: 'Button Text', type: 'text' },
-      { key: 'buttonLink', label: 'Button Link', type: 'text' },
-      { section: 'Colors' },
+      { section: 'Section Colors' },
       { key: 'backgroundColor', label: 'Background', type: 'color' },
       { key: 'textColor', label: 'Text Color', type: 'color' },
-      { key: 'buttonBg', label: 'Button Background', type: 'color' },
-      { key: 'buttonColor', label: 'Button Text Color', type: 'color' },
-      { key: 'buttonRadius', label: 'Button Radius (px)', type: 'slider', min: 0, max: 50 },
-      { section: 'Spacing' },
+      { section: 'Section Spacing' },
       { key: 'paddingTop', label: 'Padding Top (px)', type: 'slider', min: 0, max: 200 },
       { key: 'paddingBottom', label: 'Padding Bottom (px)', type: 'slider', min: 0, max: 200 },
     ],

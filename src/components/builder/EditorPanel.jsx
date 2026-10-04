@@ -1,18 +1,8 @@
-// components/builder/EditorPanel.jsx
-// The right-side property editor.
-//
-// How it works:
-//  1. Read selectedSection from BuilderContext
-//  2. Look up its config (the "fields" array) from sectionRegistry
-//  3. Loop through fields and render the right control for each field type
-//  4. When a control changes, call updateSection() to update the live canvas
-//
-// Adding a new control type? Just add a case to the renderField switch below.
-
 'use client';
 
 import { useBuilder } from '@/context/BuilderContext';
 import { sectionRegistry } from '@/lib/sectionRegistry';
+import { elementRegistry } from '@/lib/elementRegistry';
 import TextControl from '@/components/editor/TextControl';
 import TextareaControl from '@/components/editor/TextareaControl';
 import ColorControl from '@/components/editor/ColorControl';
@@ -21,81 +11,238 @@ import SliderControl from '@/components/editor/SliderControl';
 import styles from './EditorPanel.module.css';
 
 export default function EditorPanel() {
-  const { selectedSection, updateSection } = useBuilder();
+  const {
+    selectedSection,
+    selectedElement,
+    updateSection,
+    updateElement,
+    selectSection,
+    selectElement,
+  } = useBuilder();
 
-  // Nothing selected — show a prompt
   if (!selectedSection) {
     return (
       <aside className={styles.panel}>
         <div className={styles.empty}>
           <p className={styles.emptyIcon}>☜</p>
-          <p className={styles.emptyText}>Click any section on the canvas to edit its properties</p>
+          <p className={styles.emptyText}>
+            Click any element or section on the canvas to edit its properties
+          </p>
         </div>
       </aside>
     );
   }
 
-  const config = sectionRegistry[selectedSection.type];
-  if (!config) return null;
-
-  // Helper: when a field changes, update just that prop
-  function handleChange(key, value) {
-    updateSection(selectedSection.id, { [key]: value });
-  }
-
-  // Render the right control based on the field type
-  function renderField(field, index) {
-    // Section header (not a field, just a label divider)
+  function renderControl({ field, value, onChange, index }) {
     if (field.section) {
       return (
-        <div key={`section-${index}`} className={styles.sectionDivider}>
+        <div key={`divider-${index}`} className={styles.sectionDivider}>
           {field.section}
         </div>
       );
     }
 
-    const value = selectedSection.props[field.key];
+    const controlKey = field.key || index;
+
     const commonProps = {
-      key: field.key,
       label: field.label,
-      value,
-      onChange: (val) => handleChange(field.key, val),
+      value: value ?? '',
+      onChange,
     };
 
     switch (field.type) {
       case 'text':
-        return <TextControl {...commonProps} />;
+        return <TextControl key={controlKey} {...commonProps} />;
+
       case 'textarea':
-        return <TextareaControl {...commonProps} />;
+        return <TextareaControl key={controlKey} {...commonProps} />;
+
       case 'color':
-        return <ColorControl {...commonProps} />;
+        return <ColorControl key={controlKey} {...commonProps} />;
+
       case 'select':
-        return <SelectControl {...commonProps} options={field.options} />;
+        return (
+          <SelectControl
+            key={controlKey}
+            {...commonProps}
+            options={field.options}
+          />
+        );
+
       case 'slider':
         return (
           <SliderControl
+            key={controlKey}
             {...commonProps}
             min={field.min}
             max={field.max}
           />
         );
+
       default:
-        return <TextControl {...commonProps} />;
+        return <TextControl key={controlKey} {...commonProps} />;
     }
   }
+
+  // ==========================================
+  // CASE 1: AN INDIVIDUAL ELEMENT IS SELECTED
+  // ==========================================
+  if (selectedElement) {
+    const elConfig = elementRegistry[selectedElement.type];
+
+    if (!elConfig) return null;
+
+    const ElementIcon = elConfig.icon;
+
+    const handleElementFieldChange = (field, newVal) => {
+      const group = field.group || 'content';
+
+      updateElement(selectedSection.id, selectedElement.id, {
+        [group]: {
+          ...(selectedElement[group] || {}),
+          [field.key]: newVal,
+        },
+      });
+    };
+
+    return (
+      <aside className={styles.panel}>
+        <div className={styles.header}>
+          <button
+            className={styles.backButton}
+            onClick={() => selectSection(selectedSection.id)}
+            title="Go back to section settings"
+          >
+            ← Back to {selectedSection.type}
+          </button>
+
+          <div className={styles.headerMain}>
+            <span className={styles.icon}>
+              <ElementIcon />
+            </span>
+
+            <div className={styles.titleWrapper}>
+              <h2 className={styles.title}>
+                {elConfig.label}
+                <span className={styles.badge}>Element</span>
+              </h2>
+
+              <p className={styles.subtitle}>
+                Edit element properties
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className={styles.fields}>
+          {elConfig.fields.map((field, index) => {
+            const group = field.group || 'content';
+            const value = selectedElement[group]?.[field.key];
+
+            return renderControl({
+              field,
+              value,
+              onChange: (val) => handleElementFieldChange(field, val),
+              index,
+            });
+          })}
+        </div>
+      </aside>
+    );
+  }
+
+  // ==========================================
+  // CASE 2: AN ENTIRE SECTION IS SELECTED
+  // ==========================================
+  const secConfig = sectionRegistry[selectedSection.type];
+
+  if (!secConfig) return null;
+
+  const SectionIcon = secConfig.icon;
+
+  const handleSectionFieldChange = (key, newVal) => {
+    updateSection(selectedSection.id, {
+      styles: { [key]: newVal },
+      props: { [key]: newVal },
+    });
+  };
+
+  const hasElements =
+    selectedSection.elements &&
+    selectedSection.elements.length > 0;
 
   return (
     <aside className={styles.panel}>
       <div className={styles.header}>
-        <span className={styles.icon}>{config.icon}</span>
-        <div>
-          <h2 className={styles.title}>{config.label}</h2>
-          <p className={styles.subtitle}>Edit properties</p>
+        <div className={styles.headerMain}>
+          <span className={styles.icon}>
+            <SectionIcon />
+          </span>
+
+          <div className={styles.titleWrapper}>
+            <h2 className={styles.title}>
+              {secConfig.label}
+              <span className={styles.badge}>Section</span>
+            </h2>
+
+            <p className={styles.subtitle}>
+              Edit section layout & elements
+            </p>
+          </div>
         </div>
       </div>
 
+      {/* Quick Element Picker Chips */}
+      {hasElements && (
+        <div className={styles.elementsBox}>
+          <div className={styles.elementsBoxTitle}>
+            Elements inside this section:
+          </div>
+
+          <div className={styles.elementChips}>
+            {selectedSection.elements.map((el) => {
+              const elConf = elementRegistry[el.type];
+
+              const ChipIcon = elConf?.icon;
+
+              return (
+                <button
+                  key={el.id}
+                  className={styles.elementChip}
+                  onClick={() =>
+                    selectElement(selectedSection.id, el.id)
+                  }
+                  title={`Edit ${elConf?.label || el.type}`}
+                >
+                  <span>
+                    {ChipIcon ? <ChipIcon /> : '•'}
+                  </span>
+
+                  <span>
+                    {elConf?.label || el.type}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Section level fields */}
       <div className={styles.fields}>
-        {config.fields.map((field, index) => renderField(field, index))}
+        {(secConfig.fields || []).map((field, index) => {
+          const value =
+            selectedSection.styles?.[field.key] ??
+            selectedSection.props?.[field.key];
+
+          return renderControl({
+            field,
+            value,
+            onChange: (val) =>
+              handleSectionFieldChange(field.key, val),
+            index,
+          });
+        })}
       </div>
     </aside>
   );

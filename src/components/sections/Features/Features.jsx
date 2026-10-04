@@ -1,19 +1,70 @@
 // components/sections/Features/Features.jsx
-// Renders a grid of feature cards.
+// Features section composed of header elements (heading, paragraph) and card elements.
 
 'use client';
 
-export function Features({
-  heading,
-  subheading,
-  backgroundColor,
-  textColor,
-  paddingTop,
-  paddingBottom,
-  textAlign,
-  columns,
-  items = [],
-}) {
+import ElementRenderer from '@/components/renderer/ElementRenderer';
+
+export function Features({ section, ...fallbackProps }) {
+  const styles = section?.styles || {};
+  const backgroundColor = styles.backgroundColor || fallbackProps.backgroundColor || '#ffffff';
+  const textColor = styles.textColor || fallbackProps.textColor || '#111111';
+  const paddingTop = styles.paddingTop ? `${parseInt(styles.paddingTop)}px` : '80px';
+  const paddingBottom = styles.paddingBottom ? `${parseInt(styles.paddingBottom)}px` : '80px';
+  const columns = styles.columns || fallbackProps.columns || 3;
+
+  const elements = section?.elements;
+
+  if (elements && elements.length > 0) {
+    const headerElements = elements.filter(
+      (el) => el.type === 'heading' || el.type === 'paragraph'
+    );
+    const cardElements = elements.filter((el) => el.type === 'card');
+
+    return (
+      <section
+        style={{
+          backgroundColor,
+          color: textColor,
+          paddingTop,
+          paddingBottom,
+        }}
+      >
+        <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 2rem' }}>
+          {/* Header elements (Title, subtitle) */}
+          <div style={{ maxWidth: '640px', margin: '0 auto 3rem auto', textAlign: 'center' }}>
+            {headerElements.map((element) => (
+              <ElementRenderer
+                key={element.id}
+                element={element}
+                sectionId={section.id}
+              />
+            ))}
+          </div>
+
+          {/* Cards Grid */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+              gap: '1.5rem',
+            }}
+          >
+            {cardElements.map((element) => (
+              <ElementRenderer
+                key={element.id}
+                element={element}
+                sectionId={section.id}
+              />
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  // Fallback for legacy format
+  const items = fallbackProps.items || [];
   return (
     <section
       style={{
@@ -24,19 +75,19 @@ export function Features({
       }}
     >
       <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 2rem' }}>
-        <div style={{ textAlign, marginBottom: '3rem' }}>
+        <div style={{ textAlign: fallbackProps.textAlign || 'center', marginBottom: '3rem' }}>
           <h2 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '0.75rem' }}>
-            {heading}
+            {fallbackProps.heading}
           </h2>
-          <p style={{ fontSize: '1.1rem', opacity: 0.7, maxWidth: '600px', margin: textAlign === 'center' ? '0 auto' : 0 }}>
-            {subheading}
+          <p style={{ fontSize: '1.1rem', opacity: 0.7, maxWidth: '600px', margin: '0 auto' }}>
+            {fallbackProps.subheading}
           </p>
         </div>
 
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: `repeat(${columns || 3}, 1fr)`,
+            gridTemplateColumns: `repeat(${columns}, 1fr)`,
             gap: '1.5rem',
           }}
         >
@@ -60,3 +111,5 @@ export function Features({
     </section>
   );
 }
+
+export default Features;

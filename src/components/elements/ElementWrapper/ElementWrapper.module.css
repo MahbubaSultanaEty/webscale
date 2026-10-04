@@ -1,0 +1,54 @@
+/* components/elements/ElementWrapper/ElementWrapper.module.css */
+
+.wrapper {
+  position: relative;
+  cursor: pointer;
+  border-radius: 4px;
+  outline: 1.5px dashed transparent;
+  outline-offset: 3px;
+  transition: outline-color 0.15s ease, background-color 0.15s ease;
+}
+
+/* Hover effect */
+.wrapper:hover {
+  outline-color: rgba(108, 99, 255, 0.5);
+  background-color: rgba(108, 99, 255, 0.03);
+}
+
+.wrapper:hover .badge {
+  opacity: 1;
+}
+
+/* Selected effect */
+.selected {
+  outline: 2px solid #6c63ff !important;
+  outline-offset: 3px;
+  background-color: rgba(108, 99, 255, 0.05);
+}
+
+.selected .badge {
+  opacity: 1;
+  background: #6c63ff;
+  color: #ffffff;
+}
+
+/* Element Type Badge */
+.badge {
+  position: absolute;
+  top: -12px;
+  left: 6px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: #2a2b36;
+  color: #e2e8f0;
+  padding: 1px 7px;
+  border-radius: 4px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  z-index: 20;
+  white-space: nowrap;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}

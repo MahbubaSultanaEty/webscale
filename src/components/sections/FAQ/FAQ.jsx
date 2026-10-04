@@ -1,24 +1,65 @@
 // components/sections/FAQ/FAQ.jsx
-// Accordion-style FAQ section. Each item toggles open/closed.
+// FAQ section composed of heading and Q&A card elements.
 
 'use client';
 
 import { useState } from 'react';
+import ElementRenderer from '@/components/renderer/ElementRenderer';
 
-export function FAQ({
-  heading,
-  backgroundColor,
-  textColor,
-  paddingTop,
-  paddingBottom,
-  items = [],
-}) {
+export function FAQ({ section, ...fallbackProps }) {
   const [openIndex, setOpenIndex] = useState(null);
+
+  const styles = section?.styles || {};
+  const backgroundColor = styles.backgroundColor || fallbackProps.backgroundColor || '#ffffff';
+  const textColor = styles.textColor || fallbackProps.textColor || '#111111';
+  const paddingTop = styles.paddingTop ? `${parseInt(styles.paddingTop)}px` : '80px';
+  const paddingBottom = styles.paddingBottom ? `${parseInt(styles.paddingBottom)}px` : '80px';
+
+  const elements = section?.elements;
 
   function toggle(i) {
     setOpenIndex(openIndex === i ? null : i);
   }
 
+  if (elements && elements.length > 0) {
+    const headingElements = elements.filter((el) => el.type === 'heading');
+    const cardElements = elements.filter((el) => el.type === 'card');
+
+    return (
+      <section
+        style={{
+          backgroundColor,
+          color: textColor,
+          paddingTop,
+          paddingBottom,
+        }}
+      >
+        <div style={{ maxWidth: '720px', margin: '0 auto', padding: '0 2rem' }}>
+          {headingElements.map((element) => (
+            <div key={element.id} style={{ marginBottom: '2.5rem' }}>
+              <ElementRenderer
+                element={element}
+                sectionId={section.id}
+              />
+            </div>
+          ))}
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {cardElements.map((element) => (
+              <ElementRenderer
+                key={element.id}
+                element={element}
+                sectionId={section.id}
+              />
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  // Fallback for legacy format
+  const items = fallbackProps.items || [];
   return (
     <section
       style={{
@@ -30,7 +71,7 @@ export function FAQ({
     >
       <div style={{ maxWidth: '720px', margin: '0 auto', padding: '0 2rem' }}>
         <h2 style={{ fontSize: '2rem', fontWeight: 700, textAlign: 'center', marginBottom: '2.5rem' }}>
-          {heading}
+          {fallbackProps.heading}
         </h2>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -85,3 +126,5 @@ export function FAQ({
     </section>
   );
 }
+
+export default FAQ;

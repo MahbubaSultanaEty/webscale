@@ -12,27 +12,109 @@
 
 .header {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  gap: 8px;
   padding: 1rem;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+}
+
+.backButton {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  text-align: left;
+}
+
+.backButton:hover {
+  text-decoration: underline;
+}
+
+.headerMain {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .icon {
   font-size: 1.5rem;
 }
 
+.titleWrapper {
+  flex: 1;
+}
+
 .title {
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: rgba(108, 99, 255, 0.15);
+  color: var(--accent);
+  padding: 2px 6px;
+  border-radius: 4px;
 }
 
 .subtitle {
   font-size: 0.72rem;
   color: var(--text-muted);
   margin-top: 1px;
+}
+
+/* Element selector bar inside section view */
+.elementsBox {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.elementsBoxTitle {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+
+.elementChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.elementChip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.elementChip:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .fields {
@@ -49,7 +131,7 @@
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--text-muted);
-  padding-top: 6px;
+  padding-top: 8px;
   padding-bottom: 2px;
   border-top: 1px solid var(--border);
   margin-top: 4px;
