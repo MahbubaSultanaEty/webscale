@@ -35,14 +35,14 @@ export default function ElementActionMenu({
       </button>
 
       {/* Copy */}
-      <button
+      {/* <button
         type="button"
         onClick={onCopy}
         className={styles.button}
       >
         <Copy className={styles.icon} />
         <span>Copy</span>
-      </button>
+      </button> */}
 
       <div className={styles.divider} />
 

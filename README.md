@@ -1,21 +1,27 @@
 # WebScale
 
-A visual drag-and-drop page builder. Compose a landing page from ready-made sections, click any element to edit it, reorder and resize elements on the canvas, and have everything autosaved to MongoDB.
+WebScale is a demo **website builder / CMS**. You assemble a landing page from ready-made sections, click any element to edit its content and style, and the page is stored in MongoDB through a REST API, so it is still there when you come back.
 
-> **Status:** early MVP. The core builder and save/load work. Auth, publishing and multi-page support are not built yet (see [Roadmap](#roadmap)).
+> **Status:** early MVP. The builder, editing and save/load work end to end. Authentication, publishing and multi-page management are not built yet (see [Roadmap](#roadmap)).
 
 ---
 
 ## Features
 
-- **Visual builder UI:** TopBar, Sidebar (section picker), Canvas (live preview) and EditorPanel (properties).
+### Page builder
+- **Three-panel editor:** Sidebar (section picker), Canvas (live preview) and Editor Panel (properties), plus a TopBar with save status.
 - **6 section templates:** Hero, Features, Testimonials, FAQ, Gallery, CTA Banner.
-- **5 editable elements:** heading, paragraph, button, image, card. Click an element to edit its content and styles.
-- **Drag-and-drop reorder** of elements inside a section (powered by `@dnd-kit`), using a dedicated Move handle so click-to-edit still works.
-- **Resize elements** from the four corner handles (width and height are stored in the element's `styles`).
+- **5 editable elements:** heading, paragraph, button, image, card. Select an element on the canvas to edit its text, links, colors, typography and spacing.
+- **Section controls:** add, delete, move up and move down.
 - **Element actions:** right-click menu with Duplicate and Delete (Copy is a placeholder).
-- **Section controls:** move up, move down, delete.
-- **Persistence:** MongoDB page CRUD through the Express API, debounced autosave, and a `localStorage` fallback when the API is unreachable.
+- **Reorder and resize:** drag elements to reorder them inside a section, and resize them from the corner handles.
+
+### CMS and persistence
+- **MongoDB storage** through an Express REST API (full CRUD for pages).
+- **Autosave:** changes are saved after a 600 ms debounce, with a status badge in the TopBar (Saving..., Saved, Save failed).
+- **Manual Save / Load** buttons in the TopBar.
+- **localStorage fallback** if the API is unreachable.
+- **Safe icon storage:** Lucide icons are stored as string names (for example `'Flame'`) and mapped back to components when rendering, so page data stays JSON-serializable.
 
 ---
 
@@ -27,8 +33,8 @@ A visual drag-and-drop page builder. Compose a landing page from ready-made sect
 | Styling | CSS Modules, Tailwind CSS 4 |
 | Drag and drop | `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities` |
 | Icons | `lucide-react` |
-| Backend | Node.js, Express |
-| Database | MongoDB with Mongoose |
+| Backend | Node.js, Express, CORS, dotenv |
+| Database | MongoDB Atlas with Mongoose |
 
 ---
 
@@ -37,42 +43,43 @@ A visual drag-and-drop page builder. Compose a landing page from ready-made sect
 ### Prerequisites
 
 - Node.js (LTS recommended)
-- A running MongoDB instance (local or Atlas)
+- A MongoDB database (MongoDB Atlas or a local instance)
 
-### 1. Clone and install
-
-```bash
-git clone <your-repo-url>
-cd webscale
-npm install
-```
-
-### 2. Set up the server
-
-The Express API listens on **port 5000** (the frontend calls `http://localhost:5000/api/pages`).
+### 1. Install dependencies
 
 ```bash
-cd server          # adjust if your server folder has a different name
+# frontend (project root)
 npm install
+
+# backend
+cd server
+npm install
+cd ..
 ```
 
-Create a `.env` file in the server folder with your MongoDB connection string:
+### 2. Configure environment variables
+
+Create a `.env` file in the project root:
 
 ```env
-# TODO: use the variable names your server actually reads
-MONGODB_URI=mongodb://localhost:27017/webscale
+MONGODB_URI=mongodb+srv://<username>:<password>@<cluster-url>/?appName=<app-name>
 PORT=5000
+NEXT_PUBLIC_API_URL=http://localhost:5000/api
 ```
 
-Start the server:
+> Never commit `.env`. It contains your database credentials. Make sure `.env` is listed in `.gitignore`.
+
+### 3. Run the backend (port 5000)
 
 ```bash
-npm run dev        # or: node index.js
+npm run server
+# or, with file watching during development:
+npm run server:dev
 ```
 
-### 3. Start the frontend
+### 4. Run the frontend (port 3000)
 
-From the project root, in a second terminal:
+In a second terminal:
 
 ```bash
 npm run dev
@@ -80,7 +87,18 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) and go to `/builder`.
 
-> If the server is not running, the builder still loads from `localStorage`, but changes are **not** saved to MongoDB.
+> If the backend is not running, the builder falls back to `localStorage`. Changes are then **not** saved to MongoDB.
+
+---
+
+## Scripts
+
+| Command | Description |
+|---|---|
+| `npm run dev` | Start the Next.js dev server |
+| `npm run build` | Production build |
+| `npm run server` | Start the Express API |
+| `npm run server:dev` | Start the Express API with `node --watch` |
 
 ---
 
@@ -91,42 +109,60 @@ Open [http://localhost:3000](http://localhost:3000) and go to `/builder`.
 | `/` | Landing page |
 | `/builder` | The visual page builder |
 
-### API (Express)
+---
+
+## API
+
+Base URL: `http://localhost:5000/api`
 
 | Method | Endpoint | Description |
 |---|---|---|
-| GET | `/api/pages` | List pages |
-| GET | `/api/pages/:id` | Get one page |
-| POST | `/api/pages` | Create a page |
-| PUT | `/api/pages/:id` | Update a page (used by autosave) |
+| GET | `/health` | API health check |
+| GET | `/pages` | Get all pages (latest updated first) |
+| GET | `/pages/:id` | Get a page by ID |
+| POST | `/pages` | Create a page |
+| PUT | `/pages/:id` | Update a page (name and sections) |
+| DELETE | `/pages/:id` | Delete a page |
 
-> TODO: confirm the exact endpoints against your server routes.
+Responses use the shape `{ "success": true, "data": ... }`. Invalid ObjectIds are rejected, and the server has 404 and 500 handlers.
+
+The `Page` model stores `name` (String) and `sections` (Array), plus automatic `createdAt` and `updatedAt` timestamps.
 
 ---
 
 ## Project Structure
 
 ```
-src/
-├── app/                      # Next.js routes (/ and /builder)
-├── context/
-│   └── BuilderContext.js     # Global builder state + actions + autosave
-├── lib/
-│   ├── sectionRegistry.js    # Section templates and their default elements
-│   ├── elementRegistry.js    # Element types, default styles, editor fields
-│   ├── generateId.js         # Unique id helper
-│   ├── api.js                # API client (pages CRUD)
-│   └── storage.js            # localStorage fallback
-└── components/
-    ├── builder/              # Canvas, SectionWrapper, ElementActionMenu, ...
-    ├── renderer/
-    │   ├── SectionRenderer.jsx
-    │   ├── ElementRenderer.jsx       # useSortable + ElementWrapper
-    │   └── SortableElementList.jsx   # DndContext + SortableContext
-    ├── sections/             # Hero, Features, Testimonials, FAQ, Gallery, CTABanner
-    └── elements/
-        ├── ElementWrapper/   # Selection, drag handle, resize handles, badge
-        ├── Heading/  Paragraph/  Button/  Image/  Card/
+webscale/
+├── server/
+│   ├── config/db.js                 # Mongoose connection
+│   ├── controllers/pageController.js # CRUD logic
+│   ├── models/Page.js               # Page schema
+│   ├── routes/pageRoutes.js         # /api/pages routes
+│   ├── server.js                    # Express entry point
+│   └── package.json
+├── src/
+│   ├── app/                         # Next.js routes (/ and /builder)
+│   ├── components/
+│   │   ├── builder/                 # BuilderLayout, Canvas, Sidebar, TopBar,
+│   │   │                            # EditorPanel, SectionWrapper, ElementActionMenu
+│   │   ├── renderer/                # SectionRenderer, ElementRenderer,
+│   │   │                            # SortableElementList
+│   │   ├── sections/                # Hero, Features, Testimonials, FAQ,
+│   │   │                            # Gallery, CTABanner
+│   │   └── elements/                # Heading, Paragraph, Button, Image, Card,
+│   │                                # ElementWrapper
+│   ├── context/BuilderContext.js    # Global state, actions, autosave
+│   └── lib/
+│       ├── api.js                   # API client
+│       ├── storage.js               # API + localStorage fallback
+│       ├── sectionRegistry.js       # Section templates
+│       ├── elementRegistry.js       # Element types and editor fields
+│       ├── iconMap.js               # Icon name -> Lucide component
+│       └── generateId.js            # Unique id helper
+├── .env
+├── .gitignore
+└── package.json
 ```
 
 ---
@@ -135,7 +171,7 @@ src/
 
 ### Data model
 
-A page is a list of sections, and each section is a list of elements:
+A page is a list of sections. Each section is a list of elements:
 
 ```js
 {
@@ -144,14 +180,14 @@ A page is a list of sections, and each section is a list of elements:
     {
       id: 'sec_xxx',
       type: 'Hero',
-      styles: { backgroundColor: '#1a1a2e', paddingTop: 80, ... },
-      props: { ... },
+      styles: { backgroundColor: '#1a1a2e', paddingTop: 80 },
+      props: {},
       elements: [
         {
           id: 'el_xxx',
           type: 'heading',
           content: { text: 'Build Something Amazing' },
-          styles: { fontSize: 52, color: '#ffffff', width: '480px' }
+          styles: { fontSize: 52, color: '#ffffff' }
         }
       ]
     }
@@ -162,23 +198,26 @@ A page is a list of sections, and each section is a list of elements:
 ### Registries
 
 - `sectionRegistry` defines each section template: label, icon, component, default styles, `createDefaultElements()` and the editor fields.
-- `elementRegistry` defines each element type: component, default content/styles and the editor fields.
+- `elementRegistry` defines each element type: component, default content and styles, and the editor fields.
 
-To add a new element or section, register it in the matching file.
+To add a new section or element type, register it in the matching file.
 
-### Drag and drop
+### Persistence flow
 
-Every section renders its elements through `SortableElementList`, which provides the `DndContext` and `SortableContext`. Each element is wrapped by `ElementRenderer` (`useSortable`), and `ElementWrapper` renders the Move handle that receives the drag listeners.
+1. On load, `BuilderContext` calls `getPages()`. If a page exists it loads that page's `_id`, `name` and `sections`. If none exists it creates a default page.
+2. An `isLoadedRef` guard stops the initial empty state from overwriting the database.
+3. Every change to `sections` triggers a debounced `PUT /api/pages/:id`, and the TopBar badge shows the save status.
+4. If the API call fails on load, the page is read from `localStorage` instead.
 
-Rules to keep in mind when adding or editing sections:
+### Drag and drop and resize
 
-- Render elements with **one** `<SortableElementList />`. Do not wrap it in `elements.map(...)`, or the list renders multiple times and element ids duplicate.
-- Every element id must be unique. Duplicate ids break selection, delete and drag.
+Every section renders its elements through a single `<SortableElementList />`, which provides the `DndContext` and `SortableContext`. Each element is wrapped by `ElementRenderer` (`useSortable`), and `ElementWrapper` renders the Move handle and the four resize handles. Resize saves `width` and `height` into the element's `styles`.
+
+Notes for contributors adding sections:
+
+- Render elements with one `<SortableElementList />`. Do not wrap it in `elements.map(...)`, or the list renders multiple times and element ids duplicate.
+- Element ids must be unique, otherwise selection, delete and drag break.
 - For grid layouts pass `strategy={rectSortingStrategy}`. If you pass a filtered subset of elements, also pass `allElements={section.elements}` so the reorder index is correct.
-
-### Persistence
-
-`BuilderContext` loads the first page from the API on startup, then autosaves (600 ms debounce) on every change and mirrors the page into `localStorage`. If the API is unavailable it falls back to `localStorage`.
 
 ---
 
@@ -186,28 +225,20 @@ Rules to keep in mind when adding or editing sections:
 
 **Not built yet**
 
-- [ ] Authentication and login
-- [ ] Publish and public preview page
-- [ ] Multi-page support (page picker; currently the first page always loads)
+- [ ] Authentication and user accounts (all endpoints are currently public)
+- [ ] Publish flow and public preview page
+- [ ] Multi-page dashboard and page picker (the builder always loads the first page)
 - [ ] Element palette to add new elements to a section
 - [ ] Copy action in the element menu (UI placeholder)
 - [ ] Moving elements between sections
-- [ ] Project documentation for the API
 
 **Known limitations**
 
-- Resize stores a fixed `width` and `height` in px on the element.
 - In sections with separate groups (for example heading vs cards), elements can only be reordered inside their own group.
+- Resize stores fixed pixel `width` and `height` values.
 
 ---
 
-## Scripts
+## License
 
-| Command | Where | Description |
-|---|---|---|
-| `npm run dev` | project root | Start the Next.js dev server |
-| `npm run build` | project root | Production build |
-| `npm run dev` | server folder | Start the Express API |
-
----
-
+TODO: add a license.
