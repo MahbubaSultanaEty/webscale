@@ -1,5 +1,4 @@
 // server/config/db.js
-// Handles MongoDB connection using Mongoose
 
 const mongoose = require('mongoose');
 
@@ -10,7 +9,7 @@ const connectDB = async () => {
     return conn;
   } catch (error) {
     console.error('MongoDB connection error:', error.message);
-    process.exit(1);
+    throw error;
   }
 };
 

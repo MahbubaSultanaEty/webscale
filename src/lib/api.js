@@ -1,8 +1,9 @@
 // lib/api.js
+
 // Client API utility for communicating with the WebScale Express + MongoDB backend
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+  process.env.NEXT_PUBLIC_API_URL || '/api';
 
 /**
  * Fetch all pages from MongoDB
@@ -123,7 +124,10 @@ export async function deletePage(id) {
  */
 export async function checkHealth() {
   try {
-    const res = await fetch(`${API_BASE_URL}/health`, { cache: 'no-store' });
+    const res = await fetch(`${API_BASE_URL}/health`, {
+      cache: 'no-store',
+    });
+
     return res.ok;
   } catch {
     return false;
